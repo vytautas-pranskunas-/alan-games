@@ -2,6 +2,8 @@ export const environment = {
   production: false,
   /** TEMP: allow switching / leaving teams freely while we build & test. */
   devFreeTeamSwitch: true,
+  /** Only this Google account can moderate ideas. */
+  adminEmail: 'vytasbboy@gmail.com',
   firebase: {
     apiKey: 'AIzaSyAYWDlK60pzPzw_aycghpFxSPpXM0XLog0',
     authDomain: 'pixel-quest-89fc6.firebaseapp.com',

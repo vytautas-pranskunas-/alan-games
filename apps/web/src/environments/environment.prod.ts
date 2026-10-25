@@ -2,6 +2,8 @@ export const environment = {
   production: true,
   /** Keep false in production — one team vote per day. */
   devFreeTeamSwitch: false,
+  /** Only this Google account can moderate ideas. */
+  adminEmail: 'vytasbboy@gmail.com',
   firebase: {
     apiKey: 'AIzaSyAYWDlK60pzPzw_aycghpFxSPpXM0XLog0',
     authDomain: 'pixel-quest-89fc6.firebaseapp.com',

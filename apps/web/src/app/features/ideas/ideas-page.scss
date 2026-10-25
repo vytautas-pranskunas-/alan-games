@@ -360,6 +360,78 @@
   color: var(--tertiary);
 }
 
+.idea-card__status {
+  color: var(--secondary);
+}
+
+.idea-card--pending {
+  border-color: color-mix(in srgb, var(--secondary) 35%, transparent);
+}
+
+.idea-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.9rem;
+}
+
+.mod-queue {
+  margin-bottom: 2rem;
+}
+
+.mod-auth {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.mod-auth__status {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+}
+
+.mod-auth__btn,
+.mod-btn {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface-lowest) 85%, transparent);
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 0.45rem 0.85rem;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    color: var(--text);
+  }
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: wait;
+  }
+}
+
+.mod-btn--approve {
+  color: var(--on-primary);
+  background: var(--primary-container);
+  border-color: transparent;
+  box-shadow: var(--glow-primary);
+}
+
+.mod-btn--delete {
+  color: #fb7185;
+  border-color: color-mix(in srgb, #fb7185 35%, transparent);
+}
+
 .empty {
   color: var(--text-muted);
 }

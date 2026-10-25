@@ -1,6 +1,7 @@
 import { DatePipe } from '@angular/common';
 import { Component, inject, signal } from '@angular/core';
 import { FormField, form, maxLength, required, submit, validate } from '@angular/forms/signals';
+import { AuthService } from '../../core/auth.service';
 import { createBotChallenge, isCorrectChallengeAnswer } from '../../ideas/bot-challenge';
 import { IdeasService } from '../../ideas/ideas.service';
 
@@ -21,13 +22,16 @@ interface IdeaDraft {
 })
 export class IdeasPage {
   private readonly ideas = inject(IdeasService);
+  protected readonly auth = inject(AuthService);
   private readonly openedAt = Date.now();
 
   protected readonly board = this.ideas.board;
+  protected readonly pending = this.ideas.pending;
   protected readonly ideasError = this.ideas.ideasError;
   protected readonly submitted = signal(false);
   protected readonly submitError = signal<string | null>(null);
   protected readonly saving = signal(false);
+  protected readonly moderating = signal<string | null>(null);
   protected readonly challenge = signal(createBotChallenge());
 
   private readonly draft = signal<IdeaDraft>({
@@ -82,14 +86,12 @@ export class IdeasPage {
     await submit(this.ideaForm, async () => {
       const value = this.draft();
 
-      // Honeypot: real users never see/fill this.
       if (value.website.trim()) {
         this.submitError.set('Could not send idea.');
         this.refreshChallenge();
         return;
       }
 
-      // Too-fast submits are usually bots.
       if (Date.now() - this.openedAt < 2500) {
         this.submitError.set('Please take a moment to fill the form, then try again.');
         return;
@@ -125,5 +127,31 @@ export class IdeasPage {
         this.saving.set(false);
       }
     });
+  }
+
+  protected async approve(id: string): Promise<void> {
+    this.moderating.set(id);
+    this.submitError.set(null);
+    try {
+      const result = await this.ideas.approveIdea(id);
+      if (!result.ok) {
+        this.submitError.set(result.reason ?? 'Could not approve.');
+      }
+    } finally {
+      this.moderating.set(null);
+    }
+  }
+
+  protected async remove(id: string): Promise<void> {
+    this.moderating.set(id);
+    this.submitError.set(null);
+    try {
+      const result = await this.ideas.deleteIdea(id);
+      if (!result.ok) {
+        this.submitError.set(result.reason ?? 'Could not delete.');
+      }
+    } finally {
+      this.moderating.set(null);
+    }
   }
 }

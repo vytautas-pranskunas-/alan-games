@@ -1,11 +1,17 @@
-import { Injectable, computed, signal } from '@angular/core';
+import { Injectable, computed, effect, inject, signal } from '@angular/core';
 import {
   addDoc,
   collection,
+  deleteDoc,
+  doc,
   onSnapshot,
+  query,
   serverTimestamp,
+  updateDoc,
+  where,
   type Unsubscribe,
 } from 'firebase/firestore';
+import { AuthService } from '../core/auth.service';
 import { getDb } from '../core/firebase';
 import { Idea, IdeaStatus } from './idea.model';
 
@@ -17,34 +23,49 @@ export interface SubmitIdeaInput {
 
 @Injectable({ providedIn: 'root' })
 export class IdeasService {
+  private readonly auth = inject(AuthService);
   private readonly ideas = signal<Idea[]>([]);
   private readonly ready = signal(false);
   private readonly error = signal<string | null>(null);
   private unsub: Unsubscribe | null = null;
 
-  /** Live board — all ideas from Firestore, newest first. */
+  /** Public board — approved ideas only. */
   readonly board = computed(() =>
-    [...this.ideas()].sort((a, b) => {
-      const ta = ideaSortKey(a);
-      const tb = ideaSortKey(b);
-      return ta < tb ? 1 : ta > tb ? -1 : 0;
-    }),
+    sortIdeas(this.ideas().filter((idea) => idea.status === 'published')),
   );
 
-  /** @deprecated use board — kept for older templates */
+  /** Pending queue — only meaningful when signed in as admin. */
+  readonly pending = computed(() =>
+    sortIdeas(this.ideas().filter((idea) => idea.status === 'pending')),
+  );
+
+  /** @deprecated use board */
   readonly published = this.board;
 
   readonly isReady = computed(() => this.ready());
   readonly ideasError = computed(() => this.error());
 
   constructor() {
-    this.watchIdeas();
+    effect(() => {
+      // Re-subscribe when admin status changes (rules allow different queries).
+      const admin = this.auth.isAdmin();
+      const authReady = this.auth.ready();
+      if (!authReady) {
+        return;
+      }
+      this.watchIdeas(admin);
+    });
   }
 
-  private watchIdeas(): void {
+  private watchIdeas(asAdmin: boolean): void {
     this.unsub?.();
+    this.ready.set(false);
+
+    const ideasRef = collection(getDb(), 'ideas');
+    const q = asAdmin ? ideasRef : query(ideasRef, where('status', '==', 'published'));
+
     this.unsub = onSnapshot(
-      collection(getDb(), 'ideas'),
+      q,
       (snap) => {
         const list: Idea[] = snap.docs.map((docSnap) => this.mapDoc(docSnap.id, docSnap.data()));
         this.ideas.set(list);
@@ -76,12 +97,11 @@ export class IdeasService {
         String(today.getDate()).padStart(2, '0'),
       ].join('-');
 
-      // Published immediately so the board updates in real time.
       await addDoc(collection(getDb(), 'ideas'), {
         nickname,
         title,
         body,
-        status: 'published' satisfies IdeaStatus,
+        status: 'pending' satisfies IdeaStatus,
         date,
         submittedAt: serverTimestamp(),
       });
@@ -92,6 +112,32 @@ export class IdeasService {
       console.error('Idea submit failed', err);
       this.error.set('Could not save idea to Firebase.');
       return { ok: false, reason: 'Could not save idea to Firebase. Please try again.' };
+    }
+  }
+
+  async approveIdea(id: string): Promise<{ ok: boolean; reason?: string }> {
+    if (!this.auth.isAdmin()) {
+      return { ok: false, reason: 'Sign in as moderator to approve ideas.' };
+    }
+    try {
+      await updateDoc(doc(getDb(), 'ideas', id), { status: 'published' satisfies IdeaStatus });
+      return { ok: true };
+    } catch (err) {
+      console.error('Approve failed', err);
+      return { ok: false, reason: 'Could not approve idea.' };
+    }
+  }
+
+  async deleteIdea(id: string): Promise<{ ok: boolean; reason?: string }> {
+    if (!this.auth.isAdmin()) {
+      return { ok: false, reason: 'Sign in as moderator to delete ideas.' };
+    }
+    try {
+      await deleteDoc(doc(getDb(), 'ideas', id));
+      return { ok: true };
+    } catch (err) {
+      console.error('Delete failed', err);
+      return { ok: false, reason: 'Could not delete idea.' };
     }
   }
 
@@ -109,8 +155,19 @@ export class IdeasService {
   }
 }
 
+function sortIdeas(list: Idea[]): Idea[] {
+  return [...list].sort((a, b) => {
+    const ta = ideaSortKey(a);
+    const tb = ideaSortKey(b);
+    return ta < tb ? 1 : ta > tb ? -1 : 0;
+  });
+}
+
 function ideaSortKey(idea: Idea): string {
-  const submitted = idea.submittedAt as { toMillis?: () => number; seconds?: number } | string | undefined;
+  const submitted = idea.submittedAt as
+    | { toMillis?: () => number; seconds?: number }
+    | string
+    | undefined;
   if (submitted && typeof submitted === 'object') {
     if (typeof submitted.toMillis === 'function') {
       return String(submitted.toMillis());
