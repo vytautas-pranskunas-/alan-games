@@ -1,0 +1,43 @@
+---
+description: Choose a browser game engine/library based on game type before building Alanas Arcade games
+alwaysApply: true
+---
+
+# Game engine selection (Alanas Arcade)
+
+Before implementing a new game under `apps/web/src/games/`, **pick an engine intentionally** — do not default to vanilla Canvas unless it is the best fit.
+
+## Decision checklist
+
+1. Identify genre/mechanics (arcade shooter, platformer, puzzle, physics toy, RPG, etc.).
+2. Prefer a **full game engine** when you need scenes, input, collisions, particles, audio, and cameras.
+3. Prefer a **physics-only lib** only when the game is simulation-heavy and you already have rendering.
+4. Prefer **vanilla Canvas** for tiny toys, learning demos, or when zero deps matter more than speed of build.
+5. Package for static hosting: game folder stays self-contained (`index.html` + assets). Use CDN, vendored bundle, or a local build into that folder — do not put game engines in the Angular app deps.
+
+## Quick map
+
+| Game type | Prefer | Avoid as core |
+|---|---|---|
+| Top-down / side arcade shooters, twin-stick, waves | **Phaser 3** (Arcade Physics) | Planck / Matter as the whole stack |
+| Platformers, tilemaps, classic 2D action | **Phaser 3** | Vanilla from scratch |
+| TypeScript-first OOP scenes/actors | **Excalibur** | Mixing Angular + game loop |
+| Heavy rigid-body / joints / Box2D feel | Phaser Matter **or** Matter/Planck + renderer | Planck alone with no renderer |
+| High-perf custom visuals, VFX-heavy | **PixiJS** (+ small helpers) | Full Phaser if you only need drawing |
+| Micro puzzle / clicker / simple UI game | Vanilla or Phaser | Full physics engines |
+
+## Concrete rules for this repo
+
+- **Pixel Space Shooter** and similar combat arcade games → **Phaser 3**.
+- Do **not** use Planck/Matter as the primary framework for scripted arcade motion (fixed obstacle speeds, laser hits, invuln frames) — use engine Arcade/overlap collisions instead.
+- Keep each game runnable via its own `index.html` after `npm run games:sync`.
+- Document the chosen engine in the game folder (comment in `index.html` or a one-line note in `game.json` `shortDescription` is enough).
+
+## Examples
+
+```text
+✅ Space shooter with WASD + mouse aim + waves → Phaser 3 scenes + Arcade Physics
+✅ Angry-birds style fling → Matter.js or Phaser Matter
+❌ Space shooter built only on Planck (no scenes/input/render helpers)
+❌ Adding phaser to apps/web/package.json for one embeddable game
+```
