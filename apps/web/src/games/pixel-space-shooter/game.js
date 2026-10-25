@@ -795,8 +795,7 @@
     }
 
     setupTouchControls() {
-      // Always build sticks so tablets / touch laptops work; fade on pure desktop
-      const show = this.isTouchPlay();
+      // Always show sticks in-game (tablet + desktop) so controls are never "invisible"
       const depth = 120;
       const leftX = 110;
       const rightX = W - 110;
@@ -804,7 +803,7 @@
       const baseR = 56;
       const knobR = 24;
 
-      this.touchUi = this.add.container(0, 0).setDepth(depth).setAlpha(show ? 0.85 : 0);
+      this.touchUi = this.add.container(0, 0).setDepth(depth).setAlpha(0.88);
       this.touchUi.setScrollFactor(0);
 
       // Left stick — move
@@ -872,7 +871,6 @@
         aimKnob,
         magBtn,
         superBtn,
-        show,
       };
 
       const clampKnob = (cx, cy, px, py, maxR) => {
@@ -968,24 +966,6 @@
       this.input.on("pointerup", releasePointer);
       this.input.on("pointerupoutside", releasePointer);
 
-      if (!show) {
-        moveZone.disableInteractive();
-        aimZone.disableInteractive();
-        magBtn.disableInteractive();
-        superBtn.disableInteractive();
-      }
-
-      // Reveal + enable controls on first touch (tablets / hybrid devices)
-      this.input.on("pointerdown", (pointer) => {
-        if (!pointer.wasTouch || !this.touchUi) return;
-        if (this.touchUi.alpha < 0.5) {
-          this.touchUi.setAlpha(0.9);
-          moveZone.setInteractive();
-          aimZone.setInteractive();
-          magBtn.setInteractive({ useHandCursor: true });
-          superBtn.setInteractive({ useHandCursor: true });
-        }
-      });
     }
 
     buildHud() {
