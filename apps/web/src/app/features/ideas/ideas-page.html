@@ -59,6 +59,42 @@
           }
         </label>
 
+        <!-- Honeypot: hidden from people, bots often fill it -->
+        <div class="hp" aria-hidden="true">
+          <label>
+            <span>Website</span>
+            <input
+              type="text"
+              tabindex="-1"
+              autocomplete="off"
+              [formField]="ideaForm.website"
+            />
+          </label>
+        </div>
+
+        <div class="bot-check">
+          <div class="bot-check__head">
+            <span>Bot check</span>
+            <button type="button" class="bot-check__refresh" (click)="refreshChallenge()">
+              New question
+            </button>
+          </div>
+          <label class="bot-check__row">
+            <span class="bot-check__prompt">What is {{ challenge().prompt }}?</span>
+            <input
+              type="text"
+              inputmode="numeric"
+              autocomplete="off"
+              placeholder="Answer"
+              [formField]="ideaForm.botAnswer"
+              [class.is-invalid]="!!fieldError('botAnswer')"
+            />
+          </label>
+          @if (fieldError('botAnswer'); as err) {
+            <p class="field-error" role="alert">{{ err }}</p>
+          }
+        </div>
+
         <button type="submit" class="submit-btn" [disabled]="saving()">
           {{ saving() ? 'Sending…' : 'Send idea to Alanas' }}
         </button>
