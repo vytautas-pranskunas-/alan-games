@@ -1,5 +1,5 @@
 @if (teams.team(); as team) {
-  <header class="shell-header">
+  <header class="shell-header" [class.shell-header--hidden]="playing()">
     <div class="shell-header__inner">
       <a routerLink="/games" class="brand" (click)="closeMenu()">
         <img [src]="team.logoSrc" [alt]="team.name + ' logo'" class="brand__logo" />

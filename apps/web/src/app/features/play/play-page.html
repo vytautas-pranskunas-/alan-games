@@ -6,8 +6,16 @@
     }
   </div>
 
+  <a routerLink="/games" class="play__fab" aria-label="Back to games">←</a>
+
   @if (safeSrc(); as src) {
-    <iframe class="play__frame" [src]="src" title="Playable game" allowfullscreen></iframe>
+    <iframe
+      class="play__frame"
+      [src]="src"
+      title="Playable game"
+      allowfullscreen
+      allow="fullscreen"
+    ></iframe>
   } @else {
     <p class="play__missing">Game not found.</p>
   }

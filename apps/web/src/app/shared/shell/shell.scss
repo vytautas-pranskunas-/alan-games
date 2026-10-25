@@ -5,6 +5,23 @@
   background: color-mix(in srgb, var(--surface) 80%, transparent);
   backdrop-filter: blur(18px);
   border-bottom: 1px solid var(--border);
+
+  &--hidden {
+    @media (max-width: 1023px) {
+      display: none;
+    }
+  }
+}
+
+:host.shell--playing {
+  @media (max-width: 1023px) {
+    .shell-main {
+      padding-top: 0;
+      min-height: 100dvh;
+      height: 100dvh;
+      overflow: hidden;
+    }
+  }
 }
 
 .shell-header__inner {

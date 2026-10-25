@@ -786,18 +786,26 @@
       this._pauseAt = 0;
 
       this.input.keyboard.on("keydown-ESC", () => this.togglePause());
-      this.setupTouchControls();
+      if (this.isTouchPlay()) {
+        this.setupTouchControls();
+      }
     }
 
     isTouchPlay() {
-      return (
-        (typeof navigator !== "undefined" && navigator.maxTouchPoints > 0) ||
-        "ontouchstart" in window
-      );
+      if (typeof window === "undefined") return false;
+      const ua = navigator.userAgent || "";
+      // iPadOS 13+ reports as MacIntel with touch points
+      const iPad =
+        /iPad/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+      if (iPad || /Android|iPhone|iPod|Mobile|Tablet/i.test(ua)) {
+        return true;
+      }
+      // Phones/tablets that don't hover; skip desktop (even with a touchscreen + mouse)
+      return window.matchMedia("(hover: none) and (pointer: coarse)").matches;
     }
 
     setupTouchControls() {
-      // Always show sticks in-game (tablet + desktop) so controls are never "invisible"
+      if (!this.isTouchPlay()) return;
       const depth = 120;
       const leftX = 110;
       const rightX = W - 110;
