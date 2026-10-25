@@ -1,0 +1,26 @@
+[data-team='toxic'] {
+  --canvas: #060e20;
+  --surface: #0b1326;
+  --surface-low: #131b2e;
+  --surface-high: #1e2942;
+  --surface-lowest: #060e20;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-active: rgba(34, 197, 94, 0.4);
+  --primary: #22c55e;
+  --primary-bright: #4ade80;
+  --primary-container: #22c55e;
+  --on-primary: #060e20;
+  --secondary: #38bdf8;
+  --secondary-bright: #4cd7f6;
+  --tertiary: #a855f7;
+  --tertiary-soft: #deb8ff;
+  --text: #ffffff;
+  --text-muted: #94a3b8;
+  --outline: #64748b;
+  --gradient-cta: linear-gradient(135deg, #22c55e 0%, #4ade80 100%);
+  --glow-primary: 0 0 20px rgba(34, 197, 94, 0.35);
+  --glow-secondary: 0 0 16px rgba(74, 222, 128, 0.45);
+  --font-display: 'Outfit', system-ui, sans-serif;
+  --font-body: 'Plus Jakarta Sans', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+}

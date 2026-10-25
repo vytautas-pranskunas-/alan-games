@@ -1,0 +1,48 @@
+<section class="picker">
+  <div class="picker__glow picker__glow--left" aria-hidden="true"></div>
+  <div class="picker__glow picker__glow--right" aria-hidden="true"></div>
+
+  <div class="picker__content">
+    <p class="picker__eyebrow">Alanas Game Arcade // Daily team battle</p>
+    <h1 class="picker__title">Pick a side. One vote per day.</h1>
+    <p class="picker__lead">
+      Choose Dragon Play or Toxic Zone.
+      @if (battleState.freeSwitch) {
+        <strong>Dev mode:</strong> team switching is unlocked for testing.
+      } @else {
+        One vote per day — at <strong>21:00</strong> the bigger team wins (shown in the header).
+      }
+    </p>
+
+    @if (!battleState.canVote() && !battleState.hasVotedToday()) {
+      <p class="picker__closed">Voting is closed for today (after 21:00). Come back tomorrow!</p>
+      <button type="button" class="picker__spectator" (click)="watchAsSpectator()">
+        Enter as spectator
+      </button>
+    }
+
+    <div class="picker__teams">
+      @for (team of options; track team.id) {
+        <button
+          type="button"
+          class="team-card"
+          [attr.data-team-preview]="team.id"
+          [disabled]="busy() || !battleState.canVote()"
+          (click)="choose(team.id)"
+        >
+          <img [src]="team.logoSrc" [alt]="team.name" class="team-card__logo" />
+          <span class="team-card__name">{{ team.wordmark }}</span>
+          <span class="team-card__tag">{{ team.tagline }}</span>
+          <span class="team-card__cta">{{ battleState.canVote() ? 'Join team' : 'Locked' }}</span>
+        </button>
+      }
+    </div>
+
+    @if (battleState.battleError(); as err) {
+      <p class="picker__message" role="alert">{{ err }}</p>
+    }
+    @if (message(); as msg) {
+      <p class="picker__message" role="status">{{ msg }}</p>
+    }
+  </div>
+</section>

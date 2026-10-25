@@ -1,0 +1,14 @@
+<div class="play">
+  <div class="play__bar">
+    <a routerLink="/games" class="play__back">← Back to games</a>
+    @if (game(); as g) {
+      <h1>{{ g.title }}</h1>
+    }
+  </div>
+
+  @if (safeSrc(); as src) {
+    <iframe class="play__frame" [src]="src" title="Playable game" allowfullscreen></iframe>
+  } @else {
+    <p class="play__missing">Game not found.</p>
+  }
+</div>

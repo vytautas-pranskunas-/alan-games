@@ -1,0 +1,108 @@
+<div class="ideas">
+  <div class="ambient" aria-hidden="true">
+    <div class="ambient__blob ambient__blob--a"></div>
+    <div class="ambient__blob ambient__blob--b"></div>
+  </div>
+
+  <header class="intro">
+    <span class="chip">
+      <span class="chip__pip"></span>
+      SYS.IDEAS // CO-CREATION LAB
+    </span>
+    <h1>Game Ideas <span>&amp;</span> Suggestions</h1>
+    <p>Got an idea for Alanas’s next game? Help a 10-year-old dev build something awesome!</p>
+  </header>
+
+  <div class="layout">
+    <section class="submit-panel">
+      <div class="submit-panel__head">
+        <h2>Submit a Concept</h2>
+        <span class="version">v0.9 TRANSMIT</span>
+      </div>
+
+      <form class="form" novalidate (submit)="onSubmit($event)">
+        <label>
+          <span>Your Name or Nickname</span>
+          <input
+            type="text"
+            placeholder="e.g. PixelPilot88"
+            autocomplete="nickname"
+            [formField]="ideaForm.nickname"
+            [class.is-invalid]="!!fieldError('nickname')"
+          />
+          @if (fieldError('nickname'); as err) {
+            <p class="field-error" role="alert">{{ err }}</p>
+          }
+        </label>
+        <label>
+          <span>Game Idea Title</span>
+          <input
+            type="text"
+            placeholder="Give it a snappy title!"
+            [formField]="ideaForm.title"
+            [class.is-invalid]="!!fieldError('title')"
+          />
+          @if (fieldError('title'); as err) {
+            <p class="field-error" role="alert">{{ err }}</p>
+          }
+        </label>
+        <label>
+          <span>Describe Your Idea</span>
+          <textarea
+            rows="4"
+            placeholder="What makes this game fun?"
+            [formField]="ideaForm.description"
+            [class.is-invalid]="!!fieldError('description')"
+          ></textarea>
+          @if (fieldError('description'); as err) {
+            <p class="field-error" role="alert">{{ err }}</p>
+          }
+        </label>
+
+        <button type="submit" class="submit-btn" [disabled]="saving()">
+          {{ saving() ? 'Sending…' : 'Send idea to Alanas' }}
+        </button>
+      </form>
+
+      @if (submitted()) {
+        <p class="toast" role="status">Saved! Your idea is on the board now.</p>
+      }
+      @if (submitError(); as err) {
+        <p class="toast toast--error" role="alert">{{ err }}</p>
+      }
+
+      <p class="policy">
+        <strong>Kid-Safe Policy:</strong> Be kind. Ideas go live on the board right away for Alanas
+        to read.
+      </p>
+    </section>
+
+    <section class="board">
+      <div class="board__head">
+        <h2>Community Idea Board</h2>
+        <p>Live from Firebase — new ideas appear instantly.</p>
+      </div>
+
+      @if (ideasError(); as err) {
+        <p class="empty" role="alert">{{ err }}</p>
+      }
+
+      <div class="board__list">
+        @for (idea of board(); track idea.id) {
+          <article class="idea-card">
+            <div class="idea-card__meta">
+              @if (idea.date) {
+                <time [attr.datetime]="idea.date">{{ idea.date | date: 'MMM d, y' }}</time>
+              }
+            </div>
+            <h3>{{ idea.title }}</h3>
+            <p>{{ idea.body }}</p>
+            <footer>by {{ idea.nickname }}</footer>
+          </article>
+        } @empty {
+          <p class="empty">No ideas yet — be the first!</p>
+        }
+      </div>
+    </section>
+  </div>
+</div>

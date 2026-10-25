@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><meta content="web_standard" name="shell-type"/><title>Alex // 11yo Indie Game Dev</title><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&amp;family=Outfit:wght@500;600;700;800&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base { html, body { margin: 0; padding: 0; } body { overscroll-behavior: none; } main > :first-child { margin-top: 0 !important; } main > :last-child { margin-bottom: 0 !important; } } ::-webkit-scrollbar { display: none; }</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { "colors": { "error": "#ffb4ab", "surface-container-lowest": "#060e20", "surface-dim": "#0b1326", "background": "#0b1326", "on-background": "#dae2fd", "surface-variant": "#2d3449", "on-primary-container": "#004b1e", "inverse-primary": "#006e2f", "tertiary-container": "#cb94ff", "secondary-fixed": "#acedff", "surface-bright": "#31394d", "on-tertiary": "#490080", "surface": "#0b1326", "primary": "#4be277", "inverse-on-surface": "#283044", "secondary-container": "#03b5d3", "outline-variant": "#3d4a3d", "on-surface": "#dae2fd", "tertiary-fixed": "#f0dbff", "on-error-container": "#ffdad6", "on-primary-fixed-variant": "#005321", "outline": "#869585", "surface-container-low": "#131b2e", "inverse-surface": "#dae2fd", "on-primary": "#003915", "primary-fixed": "#6bff8f", "surface-container-highest": "#2d3449", "on-secondary-fixed": "#001f26", "surface-tint": "#4ae176", "secondary-fixed-dim": "#4cd7f6", "surface-container-high": "#222a3d", "tertiary-fixed-dim": "#ddb7ff", "on-error": "#690005", "primary-fixed-dim": "#4ae176", "on-secondary-container": "#00424e", "primary-container": "#22c55e", "on-primary-fixed": "#002109", "on-secondary-fixed-variant": "#004e5c", "on-tertiary-container": "#5f00a3", "error-container": "#93000a", "secondary": "#4cd7f6", "surface-container": "#171f33", "on-surface-variant": "#bccbb9", "on-tertiary-fixed": "#2c0051", "on-tertiary-fixed-variant": "#6900b3", "on-secondary": "#003640", "tertiary": "#deb8ff" }, "borderRadius": { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, "spacing": { "space-xl": "2.5rem", "space-xs": "0.25rem", "margin-mobile": "1.25rem", "gutter-mobile": "1rem", "gutter": "1.5rem", "space-lg": "1.5rem", "space-sm": "0.5rem", "margin": "2rem", "space-md": "1rem" }, "fontFamily": { "headline-lg-mobile": [ "Outfit" ], "body-lg": [ "Plus Jakarta Sans" ], "body-sm": [ "Plus Jakarta Sans" ], "label-md": [ "JetBrains Mono" ], "headline-xl": [ "Outfit" ], "headline-xl-mobile": [ "Outfit" ], "headline-sm": [ "Outfit" ], "body-md": [ "Plus Jakarta Sans" ], "label-sm": [ "JetBrains Mono" ], "headline-md": [ "Outfit" ], "headline-lg": [ "Outfit" ] }, "fontSize": { "headline-lg-mobile": [ "26px", { "lineHeight": "34px", "fontWeight": "700" } ], "body-lg": [ "18px", { "lineHeight": "28px", "fontWeight": "400" } ], "body-sm": [ "13px", { "lineHeight": "20px", "fontWeight": "400" } ], "label-md": [ "13px", { "lineHeight": "18px", "fontWeight": "500" } ], "headline-xl": [ "48px", { "lineHeight": "56px", "fontWeight": "800" } ], "headline-xl-mobile": [ "32px", { "lineHeight": "40px", "fontWeight": "800" } ], "headline-sm": [ "20px", { "lineHeight": "28px", "fontWeight": "600" } ], "body-md": [ "15px", { "lineHeight": "24px", "fontWeight": "400" } ], "label-sm": [ "11px", { "lineHeight": "16px", "fontWeight": "600" } ], "headline-md": [ "24px", { "lineHeight": "32px", "fontWeight": "600" } ], "headline-lg": [ "36px", { "lineHeight": "44px", "fontWeight": "700" } ] } } } };</script></head><body class="bg-background text-on-surface font-body-md text-body-md min-h-screen flex flex-col antialiased selection:bg-primary-container selection:text-on-primary-container"><header class="fixed top-0 left-0 right-0 z-50 bg-surface-container-lowest/80 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="h-20 max-w-[1140px] mx-auto px-margin-mobile lg:px-margin flex items-center justify-between gap-space-md"><div class="flex items-center gap-space-md"><img alt="Kid Game Dev Logo" class="h-8 w-auto object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1VR-d4kPi6Ooo3-PHCl1uHPohZaoJUWTrrU5p64JLmJI9KFa_lCAXPQBX8sEGqddbExr7u08QlGowgW3vwV2wxP_pKgUXX0dsWD-yl54vwfj6mzTRgsch-tibWPd13xmakhJPHLLNr2OPh8Gh3M-7jf2EOCivKMnqNzFnF7z0eBFcPF7CkdL4DjcTB12xmv4XQvvBvADuV3PDjVP_Z3_-ZILbeJTjTGFIOELBBAAjb8n1GmMY4Sf4QABg"/><div class="flex flex-col"><div class="flex items-center gap-space-sm"><span class="font-headline-sm text-headline-sm text-on-surface tracking-tight">Alex</span><span class="hidden sm:inline-block font-label-sm text-label-sm text-on-surface-variant font-medium">/ 11yo Indie Dev</span></div><div class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span><span class="font-label-sm text-label-sm text-primary tracking-wider uppercase font-semibold">ONLINE // BUILDING GAMES</span></div></div></div><nav class="flex items-center gap-space-xs sm:gap-space-sm p-1.5 rounded-full bg-surface-container-low" data-active-classes="bg-primary-container text-on-primary font-bold shadow-[0_0_20px_rgba(34,197,94,0.35)]"><a aria-current="page" class="px-4 py-2 rounded-full transition-all bg-primary-container text-on-primary font-bold shadow-[0_0_20px_rgba(34,197,94,0.35)]" data-path="games" href="#">Games</a><a class="px-4 py-2 rounded-full text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-all text-center font-headline-sm text-label-md" data-path="about-me" href="#">About Me</a><a class="px-4 py-2 rounded-full text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-all text-center font-headline-sm text-label-md" data-path="ideas" href="#">Ideas</a></nav><div class="flex items-center gap-space-sm"><div class="hidden md:flex items-center gap-space-xs"><span class="px-2.5 py-1 rounded-full bg-surface-container font-label-sm text-label-sm text-secondary">Scratch</span><span class="px-2.5 py-1 rounded-full bg-surface-container font-label-sm text-label-sm text-tertiary">Roblox</span><span class="px-2.5 py-1 rounded-full bg-surface-container font-label-sm text-label-sm text-primary">Itch.io</span></div><div class="hidden lg:flex items-center px-3 py-1.5 rounded-full bg-surface-container-high text-primary font-label-sm text-label-sm"><span class="material-symbols-outlined text-[16px] mr-1.5">sports_esports</span>Play in Browser</div><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="w-full flex-1 pt-20 bg-background max-w-[1140px] mx-auto px-margin-mobile lg:px-margin"><div class="flex flex-col w-full pb-space-xl">
+<!-- Hero / Intro Banner Section -->
+<section class="relative pt-space-lg pb-space-xl overflow-hidden">
+<!-- Ambient Luminous Halos -->
+<div class="absolute -top-24 left-1/4 w-96 h-96 rounded-full bg-primary/10 blur-[120px] pointer-events-none"></div>
+<div class="absolute top-1/2 -right-20 w-80 h-80 rounded-full bg-secondary/10 blur-[100px] pointer-events-none"></div>
+<div class="relative z-10 flex flex-col gap-space-lg">
+<!-- Breadcrumb Meta / Terminal Tag -->
+<div class="flex items-center gap-space-sm font-label-sm text-label-sm text-on-surface-variant">
+<span class="px-2.5 py-1 rounded-full bg-surface-container-high text-primary flex items-center gap-1.5 font-semibold">
+<span class="w-1.5 h-1.5 rounded-full bg-primary animate-ping"></span>
+          PORTFOLIO v2.4
+        </span>
+<span class="text-outline">/</span>
+<span class="font-label-sm text-label-sm tracking-wide">LEO_INDIE_LABS</span>
+<span class="text-outline">/</span>
+<span class="text-secondary font-medium">DISPATCH_ONLINE</span>
+</div>
+<!-- Main Asymmetric Headline & Pitch -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-space-lg items-end">
+<div class="lg:col-span-8 flex flex-col gap-space-sm">
+<h1 class="font-headline-xl text-headline-xl text-on-surface tracking-tight leading-[1.08]">
+            Hi, I'm <span class="text-transparent bg-clip-text bg-gradient-to-r from-primary via-primary-fixed to-secondary">Leo!</span>
+<br/>I'm 11 &amp; I code games.
+          </h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant max-w-2xl font-normal leading-relaxed">
+            Welcome to my personal indie hub. I build custom mechanics, chiptune beats, and retro pixels. Jump in and test every prototype live in your browser.
+          </p>
+</div>
+<!-- Quantitative Credibility Metrics -->
+<div class="lg:col-span-4 flex flex-col sm:flex-row lg:flex-col gap-space-sm">
+<div class="flex items-center justify-between p-space-md rounded-xl bg-surface-container-low shadow-md">
+<div class="flex items-center gap-space-sm">
+<div class="w-10 h-10 rounded-lg bg-surface-container-high flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[20px]">sports_esports</span>
+</div>
+<div class="flex flex-col">
+<span class="font-headline-sm text-headline-sm text-on-surface leading-none">06</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Games Shipped</span>
+</div>
+</div>
+<span class="font-label-sm text-label-sm text-primary bg-primary/10 px-2.5 py-1 rounded-full font-semibold">LIVE</span>
+</div>
+<div class="flex items-center justify-between p-space-md rounded-xl bg-surface-container-low shadow-md">
+<div class="flex items-center gap-space-sm">
+<div class="w-10 h-10 rounded-lg bg-surface-container-high flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined text-[20px]">group</span>
+</div>
+<div class="flex flex-col">
+<span class="font-headline-sm text-headline-sm text-on-surface leading-none">45,000+</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Browser Plays</span>
+</div>
+</div>
+<span class="font-label-sm text-label-sm text-secondary bg-secondary/10 px-2.5 py-1 rounded-full font-semibold">+18% MoM</span>
+</div>
+</div>
+</div>
+<!-- Live Category Filter Controls -->
+<div class="flex flex-wrap items-center gap-space-xs pt-space-xs">
+<button class="filter-chip px-5 py-2 rounded-full font-label-md text-label-md transition-all duration-200 bg-primary-container text-on-primary-container font-semibold shadow-[0_0_24px_rgba(34,197,94,0.3)]" data-filter="all">
+          All Games (6)
+        </button>
+<button class="filter-chip px-5 py-2 rounded-full font-label-md text-label-md transition-all duration-200 bg-surface-container-high text-on-surface-variant hover:text-on-surface hover:bg-surface-bright" data-filter="webgl">
+<span class="inline-block w-2 h-2 rounded-full bg-secondary mr-2"></span>Play in WebGL
+        </button>
+<button class="filter-chip px-5 py-2 rounded-full font-label-md text-label-md transition-all duration-200 bg-surface-container-high text-on-surface-variant hover:text-on-surface hover:bg-surface-bright" data-filter="godot">
+          Godot 2D / 4
+        </button>
+<button class="filter-chip px-5 py-2 rounded-full font-label-md text-label-md transition-all duration-200 bg-surface-container-high text-on-surface-variant hover:text-on-surface hover:bg-surface-bright" data-filter="scratch">
+          Scratch Canvas
+        </button>
+<button class="filter-chip px-5 py-2 rounded-full font-label-md text-label-md transition-all duration-200 bg-surface-container-high text-on-surface-variant hover:text-on-surface hover:bg-surface-bright" data-filter="roblox">
+          Roblox Studio
+        </button>
+</div>
+</div>
+</section>
+<!-- Featured Flagship Game (Split Hero Card) -->
+<section class="mb-space-xl">
+<div class="flex items-center justify-between mb-space-md">
+<div class="flex items-center gap-space-sm">
+<span class="font-label-sm text-label-sm text-primary tracking-widest uppercase font-semibold">// SPOTLIGHT RELEASE</span>
+<span class="h-px w-12 bg-primary/30"></span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">PROD_BUILD: v1.4.2</span>
+</div>
+<div class="relative group rounded-xl bg-surface-container-low overflow-hidden shadow-xl transition-all duration-300 hover:shadow-[0_16px_36px_-8px_rgba(34,197,94,0.22)]">
+<div class="grid grid-cols-1 lg:grid-cols-12">
+<!-- Visual Screen Frame -->
+<div class="relative lg:col-span-7 h-80 lg:h-auto min-h-[340px] overflow-hidden bg-surface-container-lowest">
+<img class="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700 ease-out" data-alt="Vibrant 16-bit retro arcade video game screenshot of Pixel Dino Quest. An energetic green robotic dinosaur with miniature chrome jetpack hovering over neon glowing obsidian platforms. Dramatic cyber-jungle backdrop with giant mechanical ferns, laser turrets, glowing purple pterodactyl drones, and pixelated neon green fireballs. High contrast indie game visual style with Godot 4 pixel grid lighting and retro UI health bar." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAbubjqt_QrmGh2oEkzjpt7HMK02jyliWEkj5TWpHqw9j4Q_Or3PtBXU3mpyJrbFSY5Vm6pECwlbLgN0Bv_duRLXBRGeZ2y37Rl6pIJxIoaNCaG5qrpaTzus62LqX6ZOyWcfCyTQsNfXihJBbn38o2MdFLiruC7yWS8aX0u4Jqf9AHaeJXfcj7M09KRXM9Mn8vllvDprW3j2n2PGbputQOJaCChYaXoej3J8qgPzvp7gy5auVTYnPQ"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container-low via-transparent to-black/30 lg:bg-gradient-to-r lg:from-transparent lg:to-surface-container-low"></div>
+<!-- Quick Status Overlays on Artwork -->
+<div class="absolute top-space-md left-space-md flex flex-wrap gap-space-xs">
+<span class="px-3 py-1 rounded-full bg-primary-container text-on-primary-container font-label-sm text-label-sm font-bold tracking-wider uppercase shadow-md flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[14px]">auto_awesome</span>
+              LATEST RELEASE
+            </span>
+<span class="px-3 py-1 rounded-full bg-surface-container-highest/90 backdrop-blur-md text-secondary font-label-sm text-label-sm font-medium flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+              GODOT 4
+            </span>
+</div>
+<div class="absolute bottom-space-md left-space-md flex items-center gap-space-xs bg-surface-container-lowest/80 backdrop-blur-md px-3 py-1.5 rounded-lg text-on-surface">
+<span class="text-primary font-headline-sm text-label-md">★ 4.9</span>
+<span class="text-on-surface-variant font-label-sm text-label-sm">(340 ratings)</span>
+</div>
+</div>
+<!-- Content & Action Panel -->
+<div class="lg:col-span-5 p-space-lg lg:p-space-xl flex flex-col justify-between gap-space-lg bg-surface-container-low">
+<div class="flex flex-col gap-space-sm">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-primary font-medium tracking-wide">ACTION-PLATFORMER</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">timer</span> ~35m playthrough
+              </span>
+</div>
+<h2 class="font-headline-lg text-headline-lg text-on-surface tracking-tight group-hover:text-primary transition-colors duration-200">
+              Pixel Dino Quest
+            </h2>
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">
+              A retro platformer coded over my summer holiday! Pilot a velociraptor equipped with plasma jetpacks across 12 hand-crafted cyber stages, face off against massive laser dino-bosses, and bump my original 8-bit chiptune soundtrack.
+            </p>
+<!-- Feature Checklist Badges -->
+<div class="grid grid-cols-2 gap-space-xs pt-space-xs font-label-sm text-label-sm text-on-surface">
+<div class="flex items-center gap-2 text-on-surface-variant">
+<span class="material-symbols-outlined text-primary text-[16px]">check_circle</span>
+<span>12 Level Campaign</span>
+</div>
+<div class="flex items-center gap-2 text-on-surface-variant">
+<span class="material-symbols-outlined text-primary text-[16px]">check_circle</span>
+<span>Boss Fight Engine</span>
+</div>
+<div class="flex items-center gap-2 text-on-surface-variant">
+<span class="material-symbols-outlined text-primary text-[16px]">check_circle</span>
+<span>Custom Chiptunes</span>
+</div>
+<div class="flex items-center gap-2 text-on-surface-variant">
+<span class="material-symbols-outlined text-primary text-[16px]">check_circle</span>
+<span>Gamepad Support</span>
+</div>
+</div>
+</div>
+<!-- Action Trigger Strip -->
+<div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-space-sm pt-space-md border-t-0">
+<button class="flex-1 px-space-md py-3.5 rounded-full bg-primary-container text-on-primary-container font-headline-sm text-label-md font-bold hover:scale-[1.02] active:scale-[0.99] transition-all duration-200 flex items-center justify-center gap-2 shadow-[0_0_24px_rgba(34,197,94,0.35)] cursor-pointer">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+              Play Game in Browser
+            </button>
+<button class="px-space-md py-3.5 rounded-full bg-surface-container-high text-on-surface hover:bg-surface-bright font-headline-sm text-label-md transition-colors duration-200 flex items-center justify-center gap-1.5 cursor-pointer">
+<span class="material-symbols-outlined text-[18px]">terminal</span>
+              Dev Notes
+            </button>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Arcade Directory Grid Header -->
+<section class="flex flex-col gap-space-lg">
+<div class="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-space-sm">
+<div class="flex flex-col gap-1">
+<div class="flex items-center gap-space-sm">
+<span class="font-label-sm text-label-sm text-secondary tracking-widest uppercase font-semibold">// CATALOGUE</span>
+<span class="h-px w-8 bg-secondary/30"></span>
+</div>
+<h2 class="font-headline-md text-headline-md text-on-surface tracking-tight">All Lab Projects &amp; Prototypes</h2>
+</div>
+<div class="flex items-center gap-space-xs font-label-sm text-label-sm text-on-surface-variant">
+<span>SORT:</span>
+<button class="text-primary font-semibold hover:underline">MOST PLAYED</button>
+<span class="text-outline">/</span>
+<button class="hover:text-on-surface">NEWEST</button>
+</div>
+</div>
+<!-- 4-Card Responsive Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-space-lg" id="games-grid">
+<!-- Card 1: Space Asteroid Blaster 3000 (Scratch + WebGL) -->
+<article class="game-card group flex flex-col rounded-xl bg-surface-container-low overflow-hidden shadow-lg transition-all duration-300 hover:shadow-[0_12px_30px_-6px_rgba(34,197,94,0.2)] hover:-translate-y-1" data-tech="scratch webgl">
+<!-- 16:9 Thumbnail Cover -->
+<div class="relative w-full aspect-[16/9] overflow-hidden bg-surface-container-lowest">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out" data-alt="Retro arcade vector space shooter game screenshot of Space Asteroid Blaster 3000. Intricate modular cyan space cruiser dodging shattered glowing pink and golden polygonal asteroids. Vibrant neon laser barrages, geometric explosion particles, starfield velocity streaks, and minimalist vector heads-up display. High aesthetic dark sci-fi neon arcade design." src="https://lh3.googleusercontent.com/aida-public/AB6AXuARf8F12HAjva_IqDR1w7muQC3yz0rZ5jGdA62TiJvJ2-VPD3Um89bypzh6TMexeJ_cqdBG7R0IdVBkeGbdSlzFA352k_pXAyuhqfDfefjCXZoax85lq1dDyh7UIxar71oVf6-zRsZbUg4HangY7eG0Wmz1QL84IwHzjzf5r7QIFS8fyuugiey35zFXJX11bjHHjW4WJKs5bw_c-et4HG0Ku4wMZDPebyXDK3epVH2l_pKaYeskUPY"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container-low via-transparent to-transparent"></div>
+<!-- Badges -->
+<div class="absolute top-space-sm left-space-sm flex items-center gap-space-xs">
+<span class="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-label-sm text-label-sm font-semibold tracking-wide backdrop-blur-md">
+              SCRATCH + WEBGL
+            </span>
+</div>
+<div class="absolute bottom-space-sm right-space-sm flex items-center gap-1 bg-surface-container-lowest/80 backdrop-blur-md px-2.5 py-1 rounded text-primary font-label-sm text-label-sm font-bold">
+<span class="material-symbols-outlined text-[14px]">bolt</span> 60 FPS
+          </div>
+</div>
+<!-- Body Content -->
+<div class="p-space-lg flex-1 flex flex-col justify-between gap-space-md">
+<div class="flex flex-col gap-space-xs">
+<div class="flex items-center justify-between text-on-surface-variant font-label-sm text-label-sm">
+<span>ARCADE SHOOTER</span>
+<span class="text-on-surface-variant">18.4K Plays</span>
+</div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface tracking-tight group-hover:text-primary transition-colors duration-200">
+              Space Asteroid Blaster 3000
+            </h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant line-clamp-2">
+              High-velocity asteroid dodger featuring multi-stage weapon upgrades, procedural swarm waves, and 6 customizable ship skins.
+            </p>
+</div>
+<div class="flex items-center justify-between pt-space-xs">
+<div class="flex items-center gap-1 font-label-sm text-label-sm text-on-surface-variant">
+<span class="w-2 h-2 rounded-full bg-primary"></span>
+              Browser Play Ready
+            </div>
+<button class="px-4 py-2 rounded-full bg-primary-container text-on-primary-container font-label-md text-label-md font-bold flex items-center gap-1.5 hover:scale-105 active:scale-95 transition-all shadow-md cursor-pointer">
+<span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+              Play Now
+            </button>
+</div>
+</div>
+</article>
+<!-- Card 2: Ninja Cat: Midnight Run (Godot Engine) -->
+<article class="game-card group flex flex-col rounded-xl bg-surface-container-low overflow-hidden shadow-lg transition-all duration-300 hover:shadow-[0_12px_30px_-6px_rgba(76,215,246,0.2)] hover:-translate-y-1" data-tech="godot webgl">
+<!-- 16:9 Thumbnail Cover -->
+<div class="relative w-full aspect-[16/9] overflow-hidden bg-surface-container-lowest">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out" data-alt="2D pixel art precision platformer screenshot of Ninja Cat Midnight Run. An adorable black cat with flowing neon violet shinobi scarf leaping acrobatically between moonlight-drenched Japanese castle rooftops. Glowing emerald paper lanterns, floating cherry blossom pixel petals, wall-slide spark effects, and dark starry midnight navy blue palette. Godot 2D tilemap lighting aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC_zXY841pMce0nfHhl23SgNSLzy5QUQ1rTsTbmX0HvCvE-t5Sy-m_FhJMphe6u0aJlT_LWZ3wtMuJx8ZwttwU-NUntt7QPyE0LlEwXFlN5_qnPgj8CyeL6ibAUsLAuyrsWwu5wfMEjlapNdsXZ49kX37kKFIiQrtmPLsgQf-epSQKQfbENV0nDXWyn3mLkpL6EeHYKswfP_DfVjxd0t8FTB7OWoEYbFxb-Xghi50QgrbKQcUqD0kY"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container-low via-transparent to-transparent"></div>
+<!-- Badges -->
+<div class="absolute top-space-sm left-space-sm flex items-center gap-space-xs">
+<span class="px-2.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 font-label-sm text-label-sm font-semibold tracking-wide backdrop-blur-md">
+              GODOT 2D
+            </span>
+</div>
+<div class="absolute bottom-space-sm right-space-sm flex items-center gap-1 bg-surface-container-lowest/80 backdrop-blur-md px-2.5 py-1 rounded text-secondary font-label-sm text-label-sm font-bold">
+<span class="material-symbols-outlined text-[14px]">speed</span> SPEEDRUN READY
+          </div>
+</div>
+<!-- Body Content -->
+<div class="p-space-lg flex-1 flex flex-col justify-between gap-space-md">
+<div class="flex flex-col gap-space-xs">
+<div class="flex items-center justify-between text-on-surface-variant font-label-sm text-label-sm">
+<span>STEALTH SPEEDRUNNER</span>
+<span class="text-on-surface-variant">12.1K Plays</span>
+</div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface tracking-tight group-hover:text-secondary transition-colors duration-200">
+              Ninja Cat: Midnight Run
+            </h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant line-clamp-2">
+              Precise wall-jumping, shuriken tosses, and stealth shadow slides across neon rooftop skylines with tight input buffering.
+            </p>
+</div>
+<div class="flex items-center justify-between pt-space-xs">
+<div class="flex items-center gap-1 font-label-sm text-label-sm text-on-surface-variant">
+<span class="w-2 h-2 rounded-full bg-secondary"></span>
+              Built-in Timer
+            </div>
+<button class="px-4 py-2 rounded-full bg-primary-container text-on-primary-container font-label-md text-label-md font-bold flex items-center gap-1.5 hover:scale-105 active:scale-95 transition-all shadow-md cursor-pointer">
+<span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+              Play Now
+            </button>
+</div>
+</div>
+</article>
+<!-- Card 3: Lava Obby: Impossible Island (Roblox Studio) -->
+<article class="game-card group flex flex-col rounded-xl bg-surface-container-low overflow-hidden shadow-lg transition-all duration-300 hover:shadow-[0_12px_30px_-6px_rgba(244,63,94,0.2)] hover:-translate-y-1" data-tech="roblox">
+<!-- 16:9 Thumbnail Cover -->
+<div class="relative w-full aspect-[16/9] overflow-hidden bg-surface-container-lowest">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out" data-alt="Roblox Studio obstacle course visual of Lava Obby Impossible Island. Floating obsidian basalt stepping stones, spinning magma laser hazards, and neon orange molten lava falls splashing below. Vibrant 3D blocky art style with smooth neon luminescence, checkpoint flags, and glowing parkour pads in a dark volcanic cavern environment." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBu87SI4RbysMaYx8HD-p_HxrZR7dTCE5qGd2rP-81XRNuakZ3n1bwCp-eSlCkawQ9oAAaNTW9AH2VDlSjXSMvOn2MQ18XrvN8KP804Jzf8JYA-zhltH4DVAXAK-vOexImf9KxvJknGllNN8i5G11ElwwrSyWrm1F990MIprJCYYeXKQ87XoOaX9Sd5EJ_1afU3gBIh8MOBW6Sio0L00boHyaHjPotoUrWYP6Hsf3iILC9FH4f6WMo"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container-low via-transparent to-transparent"></div>
+<!-- Badges -->
+<div class="absolute top-space-sm left-space-sm flex items-center gap-space-xs">
+<span class="px-2.5 py-0.5 rounded-full bg-rose-500/20 text-rose-300 font-label-sm text-label-sm font-semibold tracking-wide backdrop-blur-md">
+              ROBLOX STUDIO
+            </span>
+</div>
+<div class="absolute bottom-space-sm right-space-sm flex items-center gap-1 bg-surface-container-lowest/80 backdrop-blur-md px-2.5 py-1 rounded text-error font-label-sm text-label-sm font-bold">
+<span class="material-symbols-outlined text-[14px]">military_tech</span> 4 SECRET BADGES
+          </div>
+</div>
+<!-- Body Content -->
+<div class="p-space-lg flex-1 flex flex-col justify-between gap-space-md">
+<div class="flex flex-col gap-space-xs">
+<div class="flex items-center justify-between text-on-surface-variant font-label-sm text-label-sm">
+<span>PARKOUR / OBBY</span>
+<span class="text-on-surface-variant">20,400+ Visits</span>
+</div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface tracking-tight group-hover:text-primary transition-colors duration-200">
+              Lava Obby: Impossible Island
+            </h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant line-clamp-2">
+              Challenging 50-checkpoint lava course with custom Luau checkpoint scripts, moving platforms, and unlockable speed coils.
+            </p>
+</div>
+<div class="flex items-center justify-between pt-space-xs">
+<div class="flex items-center gap-1 font-label-sm text-label-sm text-on-surface-variant">
+<span class="material-symbols-outlined text-[16px] text-tertiary">open_in_new</span>
+              Roblox Launcher
+            </div>
+<button class="px-4 py-2 rounded-full bg-primary-container text-on-primary-container font-label-md text-label-md font-bold flex items-center gap-1.5 hover:scale-105 active:scale-95 transition-all shadow-md cursor-pointer">
+<span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+              Launch Obby
+            </button>
+</div>
+</div>
+</article>
+<!-- Card 4: Cyber Slime Defense (Python / Pygame Prototype) -->
+<article class="game-card group flex flex-col rounded-xl bg-surface-container-low overflow-hidden shadow-lg transition-all duration-300 hover:shadow-[0_12px_30px_-6px_rgba(203,148,255,0.2)] hover:-translate-y-1" data-tech="python webgl">
+<!-- 16:9 Thumbnail Cover -->
+<div class="relative w-full aspect-[16/9] overflow-hidden bg-surface-container-lowest">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out" data-alt="Strategic tower defense grid game screenshot of Cyber Slime Defense. Colorful gelatinous translucent slimes with cute pixel expressions navigating a futuristic printed-circuit motherboard labyrinth. Neon green laser turrets, electric blue freeze nodes, and splash acid animations popping across dark slate circuitry. Clean modern retro pixel art aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAWW1qeOF1n6-mTFl1VK5bhs2kPdxGdx2HtPsFuv2On-4yQj_wJI2XA0TMONFKRPbfp0EFpd_OsyMD1BTvPas2gH4jRVHPmGukCYmVs7-3sHRceE03Ajv2Mo1c4g0NURgydAjmv0Vraz96Wolay3RLrFNeSpzzePqTcKca8WpaYrZ0a5DHNb-fFsI0O22K-6RdNwYVvB13L8ywuA_xVCyHDj0Au9lvmsOZr-WNicjfBdg2Qa569Pjs"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container-low via-transparent to-transparent"></div>
+<!-- Badges -->
+<div class="absolute top-space-sm left-space-sm flex items-center gap-space-xs">
+<span class="px-2.5 py-0.5 rounded-full bg-purple-500/20 text-tertiary font-label-sm text-label-sm font-semibold tracking-wide backdrop-blur-md">
+              PYTHON / PYGAME
+            </span>
+</div>
+<div class="absolute bottom-space-sm right-space-sm flex items-center gap-1 bg-surface-container-lowest/80 backdrop-blur-md px-2.5 py-1 rounded text-tertiary font-label-sm text-label-sm font-bold">
+<span class="material-symbols-outlined text-[14px]">science</span> PROTOTYPE
+          </div>
+</div>
+<!-- Body Content -->
+<div class="p-space-lg flex-1 flex flex-col justify-between gap-space-md">
+<div class="flex flex-col gap-space-xs">
+<div class="flex items-center justify-between text-on-surface-variant font-label-sm text-label-sm">
+<span>TOWER DEFENSE</span>
+<span class="text-on-surface-variant">Beta Build v0.8</span>
+</div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface tracking-tight group-hover:text-tertiary transition-colors duration-200">
+              Cyber Slime Defense
+            </h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant line-clamp-2">
+              Tactical grid defense where you balance energy consumption to position prismatic laser towers against cute neon gelatin monsters.
+            </p>
+</div>
+<div class="flex items-center justify-between pt-space-xs">
+<div class="flex items-center gap-1 font-label-sm text-label-sm text-on-surface-variant">
+<span class="w-2 h-2 rounded-full bg-tertiary"></span>
+              Pyodide Web Build
+            </div>
+<button class="px-4 py-2 rounded-full bg-primary-container text-on-primary-container font-label-md text-label-md font-bold flex items-center gap-1.5 hover:scale-105 active:scale-95 transition-all shadow-md cursor-pointer">
+<span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+              Test Prototype
+            </button>
+</div>
+</div>
+</article>
+</div>
+</section>
+<!-- Interactive Ideas & Development Lab Pad -->
+<section class="mt-space-xl pt-space-lg">
+<div class="rounded-xl bg-surface-container-lowest p-space-lg lg:p-space-xl relative overflow-hidden shadow-2xl">
+<!-- Ambient Backlight -->
+<div class="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl pointer-events-none"></div>
+<div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-space-md pb-space-lg border-b border-surface-variant/40">
+<div class="flex flex-col gap-1">
+<div class="flex items-center gap-space-xs font-label-sm text-label-sm text-primary">
+<span class="material-symbols-outlined text-[16px]">lightbulb</span>
+<span>PUBLIC WORKBENCH</span>
+</div>
+<h3 class="font-headline-md text-headline-md text-on-surface tracking-tight">Currently In Development</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Vote on what mechanics Leo should code next during weekend streams!</p>
+</div>
+<div class="flex items-center gap-space-xs bg-surface-container px-3 py-1.5 rounded-full">
+<span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+<span class="font-label-sm text-label-sm text-on-surface">Updated 3 days ago</span>
+</div>
+</div>
+<!-- Roadmap Grid -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-space-md pt-space-lg">
+<!-- Item 1 -->
+<div class="p-space-md rounded-lg bg-surface-container-low flex flex-col justify-between gap-space-sm hover:bg-surface-container transition-colors">
+<div class="flex flex-col gap-1.5">
+<div class="flex items-center justify-between">
+<span class="px-2 py-0.5 rounded bg-primary/10 text-primary font-label-sm text-label-sm font-semibold">NEXT UP</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">v2.0</span>
+</div>
+<h4 class="font-headline-sm text-label-md text-on-surface">Pixel Dino: Multiplayer Co-Op</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Adding 2-player local splitscreen support in Godot with dual controllers.</p>
+</div>
+<div class="flex items-center justify-between pt-2">
+<span class="font-label-sm text-label-sm text-secondary">82% Complete</span>
+<div class="w-20 h-1.5 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-secondary w-[82%]"></div>
+</div>
+</div>
+</div>
+<!-- Item 2 -->
+<div class="p-space-md rounded-lg bg-surface-container-low flex flex-col justify-between gap-space-sm hover:bg-surface-container transition-colors">
+<div class="flex flex-col gap-1.5">
+<div class="flex items-center justify-between">
+<span class="px-2 py-0.5 rounded bg-secondary/10 text-secondary font-label-sm text-label-sm font-semibold">PROTOTYPING</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">v0.3</span>
+</div>
+<h4 class="font-headline-sm text-label-md text-on-surface">Grapple Hook Mechanics</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Testing realistic pendulum rope swing physics equations in custom Python engine.</p>
+</div>
+<div class="flex items-center justify-between pt-2">
+<span class="font-label-sm text-label-sm text-primary">45% Complete</span>
+<div class="w-20 h-1.5 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-primary w-[45%]"></div>
+</div>
+</div>
+</div>
+<!-- Item 3 -->
+<div class="p-space-md rounded-lg bg-surface-container-low flex flex-col justify-between gap-space-sm hover:bg-surface-container transition-colors">
+<div class="flex flex-col gap-1.5">
+<div class="flex items-center justify-between">
+<span class="px-2 py-0.5 rounded bg-tertiary/10 text-tertiary font-label-sm text-label-sm font-semibold">BRAINSTORM</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Concept</span>
+</div>
+<h4 class="font-headline-sm text-label-md text-on-surface">Low-Poly Kart Racing</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant">A 90s style drift arcade game with custom pixel shaders and drift sparks.</p>
+</div>
+<div class="flex items-center justify-between pt-2">
+<span class="font-label-sm text-label-sm text-tertiary">Community Vote</span>
+<button class="font-label-sm text-label-sm text-on-surface hover:text-primary flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">thumb_up</span> 142
+            </button>
+</div>
+</div>
+</div>
+</div>
+</section>
+</div>
+<script>
+  // Simple responsive interactive category filtering
+  document.addEventListener('DOMContentLoaded', () => {
+    const filterButtons = document.querySelectorAll('.filter-chip');
+    const cards = document.querySelectorAll('.game-card');
+
+    filterButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const filter = btn.getAttribute('data-filter');
+
+        // Reset visual active state on filter chips
+        filterButtons.forEach(b => {
+          b.classList.remove('bg-primary-container', 'text-on-primary-container', 'font-semibold', 'shadow-[0_0_24px_rgba(34,197,94,0.3)]');
+          b.classList.add('bg-surface-container-high', 'text-on-surface-variant');
+        });
+
+        // Highlight selected filter chip
+        btn.classList.add('bg-primary-container', 'text-on-primary-container', 'font-semibold', 'shadow-[0_0_24px_rgba(34,197,94,0.3)]');
+        btn.classList.remove('bg-surface-container-high', 'text-on-surface-variant');
+
+        // Filter cards smoothly
+        cards.forEach(card => {
+          const tech = card.getAttribute('data-tech') || '';
+          if (filter === 'all' || tech.includes(filter)) {
+            card.style.display = 'flex';
+            card.style.opacity = '1';
+          } else {
+            card.style.display = 'none';
+          }
+        });
+      });
+    });
+  });
+</script></main><footer class="w-full bg-surface-container-lowest mt-auto shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="max-w-[1140px] mx-auto px-margin-mobile lg:px-margin py-space-lg flex flex-col md:flex-row items-center justify-between gap-space-md"><div class="flex items-center gap-space-sm"><span class="font-label-sm text-label-sm text-on-surface-variant">© 2025 Alex • Built with code, pixels &amp; passion</span></div><div class="flex items-center gap-space-md"><span class="font-label-sm text-label-sm text-on-surface-variant flex items-center gap-1"><span class="material-symbols-outlined text-[14px] text-primary">bolt</span>Game Engine: Custom / Godot / Pygame</span></div></div></footer></body></html>

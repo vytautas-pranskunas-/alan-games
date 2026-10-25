@@ -1,0 +1,15 @@
+{
+  "name": "alan-games",
+  "private": true,
+  "scripts": {
+    "games:sync": "node scripts/generate-games-manifest.mjs",
+    "start": "npm run games:sync && npm --prefix apps/web start",
+    "build": "npm run games:sync && npm --prefix apps/web run build",
+    "deploy": "npm run build && firebase deploy --only hosting,firestore:rules",
+    "deploy:hosting": "firebase deploy --only hosting",
+    "deploy:rules": "firebase deploy --only firestore:rules"
+  },
+  "devDependencies": {
+    "firebase-tools": "^14.0.0"
+  }
+}

@@ -1,0 +1,50 @@
+.play {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 5rem);
+  background: var(--canvas);
+}
+
+.play__bar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.85rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+
+  @media (min-width: 1024px) {
+    padding-inline: 3rem;
+  }
+
+  h1 {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: 1.1rem;
+  }
+}
+
+.play__back {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--tertiary);
+
+  &:hover {
+    color: var(--text);
+  }
+}
+
+.play__frame {
+  flex: 1;
+  width: 100%;
+  border: 0;
+  background: #000;
+  min-height: 70vh;
+}
+
+.play__missing {
+  margin: 3rem auto;
+  color: var(--text-muted);
+}

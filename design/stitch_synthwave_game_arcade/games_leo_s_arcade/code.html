@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><meta content="web_standard" name="shell-type"/><title>Leo's Arcade</title><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&amp;family=Space+Grotesk:wght@500;600;700&amp;family=Space+Mono:wght@400;700&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={darkMode:"class",theme:{extend:{"colors":{"tertiary-fixed":"#acedff","on-tertiary":"#003640","secondary-fixed":"#ffd9e4","outline":"#988d9f","surface-tint":"#ddb7ff","surface-container-highest":"#333345","secondary-fixed-dim":"#ffb0cd","surface":"#121222","secondary-container":"#aa0266","inverse-surface":"#e3e0f8","primary-fixed":"#f0dbff","surface-container-high":"#29283a","surface-variant":"#333345","surface-container":"#1e1e2f","on-primary":"#490080","on-primary-fixed-variant":"#6900b3","tertiary-container":"#009eb9","tertiary-fixed-dim":"#4cd7f6","tertiary":"#4cd7f6","on-secondary-container":"#ffbad3","inverse-primary":"#842bd2","surface-dim":"#121222","background":"#121222","on-primary-container":"#400071","secondary":"#ffb0cd","on-background":"#e3e0f8","on-error":"#690005","surface-container-lowest":"#0c0c1d","surface-container-low":"#1a1a2b","error-container":"#93000a","primary":"#ddb7ff","on-tertiary-container":"#002f38","inverse-on-surface":"#2f2f40","on-tertiary-fixed-variant":"#004e5c","on-secondary-fixed":"#3e0022","on-secondary":"#640039","on-primary-fixed":"#2c0051","on-error-container":"#ffdad6","outline-variant":"#4d4354","on-secondary-fixed-variant":"#8c0053","primary-fixed-dim":"#ddb7ff","error":"#ffb4ab","on-surface-variant":"#cfc2d6","on-surface":"#e3e0f8","on-tertiary-fixed":"#001f26","primary-container":"#b76dff","surface-bright":"#38374a"},"borderRadius":{"DEFAULT":"1rem","lg":"2rem","xl":"3rem","full":"9999px"},"spacing":{"space-lg":"1.5rem","gutter":"1.5rem","margin":"3rem","space-xl":"2.5rem","gutter-mobile":"1rem","space-xs":"0.25rem","margin-mobile":"1.25rem","space-sm":"0.5rem","space-md":"1rem"},"fontFamily":{"headline-md":["Space Grotesk"],"headline-xl":["Space Grotesk"],"label-lg":["Space Mono"],"headline-xl-mobile":["Space Grotesk"],"label-md":["Space Mono"],"label-sm":["Space Mono"],"body-sm":["Outfit"],"headline-sm":["Space Grotesk"],"body-lg":["Outfit"],"headline-lg-mobile":["Space Grotesk"],"body-md":["Outfit"],"headline-lg":["Space Grotesk"]},"fontSize":{"headline-md":["28px",{"lineHeight":"36px","fontWeight":"600"}],"headline-xl":["56px",{"lineHeight":"64px","letterSpacing":"-0.02em","fontWeight":"700"}],"label-lg":["14px",{"lineHeight":"20px","letterSpacing":"0.06em","fontWeight":"700"}],"headline-xl-mobile":["36px",{"lineHeight":"44px","letterSpacing":"-0.01em","fontWeight":"700"}],"label-md":["12px",{"lineHeight":"16px","letterSpacing":"0.08em","fontWeight":"400"}],"label-sm":["10px",{"lineHeight":"14px","letterSpacing":"0.1em","fontWeight":"400"}],"body-sm":["13px",{"lineHeight":"20px","fontWeight":"300"}],"headline-sm":["20px",{"lineHeight":"28px","fontWeight":"500"}],"body-lg":["18px",{"lineHeight":"28px","fontWeight":"400"}],"headline-lg-mobile":["28px",{"lineHeight":"36px","letterSpacing":"0","fontWeight":"600"}],"body-md":["15px",{"lineHeight":"24px","fontWeight":"400"}],"headline-lg":["40px",{"lineHeight":"48px","letterSpacing":"-0.01em","fontWeight":"600"}]}}}};</script></head><body class="bg-background font-body-md text-on-surface antialiased min-h-screen flex flex-col"><header class="fixed top-0 left-0 right-0 z-50 bg-surface/80 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="h-20 max-w-7xl mx-auto px-margin-mobile lg:px-margin flex items-center justify-between"><div class="flex items-center gap-space-md"><a class="flex items-center gap-space-sm group" data-path="games" href="#"><div class="w-9 h-9 rounded-DEFAULT bg-surface-container-high flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-on-primary transition-all"><span class="material-symbols-outlined text-[20px]">sports_esports</span></div><span class="font-headline-sm text-headline-sm tracking-tight text-on-surface group-hover:text-primary transition-colors">LEO<span class="text-tertiary">.</span>ARCADE</span></a><div class="hidden sm:flex items-center gap-space-xs px-space-md py-space-xs rounded-full bg-surface-container-high/60"><span class="w-2 h-2 rounded-full bg-tertiary animate-pulse"></span><span class="font-label-sm text-label-sm uppercase tracking-wider text-tertiary">Age 11 • Indie Game Maker</span></div></div><div class="flex items-center gap-space-xl"><nav class="flex items-center gap-space-sm rounded-full bg-surface-container-lowest/80 p-space-xs" data-active-classes="bg-primary-container text-on-primary-container font-label-md"><a aria-current="page" class="px-space-md py-space-xs rounded-full transition-all bg-primary-container text-on-primary-container font-label-md" data-path="games" href="#">Games</a><a class="font-label-md text-label-md px-space-md py-space-xs rounded-full text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="about-me" href="#">About Me</a><a class="font-label-md text-label-md px-space-md py-space-xs rounded-full text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="ideas" href="#">Ideas</a></nav><div class="flex items-center pl-space-xs"><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></div></header><main class="w-full flex-1 pt-20 bg-background"><div class="flex flex-col w-full">
+<!-- Minimal Atmosphere Lights (Non-intrusive ambient glow strictly contained) -->
+<div class="relative w-full max-w-7xl mx-auto px-margin-mobile lg:px-margin overflow-hidden pointer-events-none select-none">
+<div class="absolute -top-32 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-[140px]"></div>
+<div class="absolute top-20 right-1/4 w-80 h-80 bg-tertiary/10 rounded-full blur-[120px]"></div>
+</div>
+<!-- Hero Intro: Ultra Clean, Spacious, Welcoming -->
+<section class="w-full max-w-7xl mx-auto px-margin-mobile lg:px-margin pt-space-xl pb-space-lg">
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-space-lg">
+<div class="max-w-2xl">
+<div class="inline-flex items-center gap-space-xs px-space-md py-space-xs rounded-full bg-surface-container-high/60 backdrop-blur-md mb-space-md">
+<span class="w-2 h-2 rounded-full bg-tertiary"></span>
+<span class="font-label-sm text-label-sm uppercase tracking-widest text-tertiary">Portfolio v1.4 // Ready Player One</span>
+</div>
+<h1 class="font-headline-xl text-headline-xl text-on-surface tracking-tight">
+          Hey, I’m Leo! <span class="text-transparent bg-clip-text bg-gradient-to-r from-primary via-secondary to-tertiary">Here are the games</span> I’ve coded so far.
+        </h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant mt-space-md max-w-xl">
+          I build high-score retro vibes, gravity puzzles, and neon arcade worlds after school. Grab a keyboard, beat my high score, and let me know your thoughts!
+        </p>
+</div>
+<!-- Quick Stats Pill (Bespoke 80s arcade metadata) -->
+<div class="flex items-center gap-space-md bg-surface-container-low px-space-lg py-space-md rounded-2xl shadow-sm">
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm uppercase text-outline">Total Plays</span>
+<span class="font-headline-sm text-headline-sm text-on-surface font-semibold">14,820</span>
+</div>
+<div class="w-px h-8 bg-surface-container-highest"></div>
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm uppercase text-outline">Lines of Code</span>
+<span class="font-headline-sm text-headline-sm text-tertiary font-semibold">8.4k</span>
+</div>
+<div class="w-px h-8 bg-surface-container-highest"></div>
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm uppercase text-outline">Bugs Fixed</span>
+<span class="font-headline-sm text-headline-sm text-secondary font-semibold">99+</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Filter Rail: Elegant, tactile, noise-free -->
+<section class="w-full max-w-7xl mx-auto px-margin-mobile lg:px-margin py-space-md">
+<div class="flex flex-wrap items-center justify-between gap-space-md">
+<div class="flex items-center gap-space-xs p-1 bg-surface-container-lowest rounded-full" id="filter-bar">
+<button class="filter-btn active font-label-md text-label-md px-space-lg py-space-xs rounded-full bg-primary-container text-on-primary-container transition-all" onclick="filterGames('all', this)">
+          All (4)
+        </button>
+<button class="filter-btn font-label-md text-label-md px-space-lg py-space-xs rounded-full text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-all" onclick="filterGames('arcade', this)">
+          Arcade
+        </button>
+<button class="filter-btn font-label-md text-label-md px-space-lg py-space-xs rounded-full text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-all" onclick="filterGames('platformer', this)">
+          Platformer
+        </button>
+<button class="filter-btn font-label-md text-label-md px-space-lg py-space-xs rounded-full text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-all" onclick="filterGames('puzzle', this)">
+          Puzzle
+        </button>
+</div>
+<div class="hidden sm:flex items-center gap-space-sm font-label-sm text-label-sm text-outline">
+<span class="material-symbols-outlined text-[16px] text-tertiary">keyboard</span>
+<span>Keyboard &amp; Gamepad Supported</span>
+</div>
+</div>
+</section>
+<!-- Spacious Games Showcase Grid -->
+<section class="w-full max-w-7xl mx-auto px-margin-mobile lg:px-margin pt-space-md pb-space-xl">
+<div class="grid grid-cols-1 md:grid-cols-2 gap-space-xl" id="games-grid">
+<!-- Game Card 1: Neon Drifter (Arcade) -->
+<article class="game-card group flex flex-col bg-surface-container-low rounded-2xl overflow-hidden shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300" data-category="arcade">
+<!-- Thumbnail preview -->
+<div class="relative w-full aspect-[16/9] overflow-hidden bg-surface-container-highest">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out" data-alt="Stylized 80s synthwave arcade racer video game screenshot with a low poly purple sportscar drifting on a glowing magenta grid highway toward a neon vector sun on the horizon with cyan palm tree wireframes" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBBxEEzj_dGkRSTR9mHueQThWQMXLc7GnoDw4T-9mkV7AsrLnDmtErwlORdiIfUwexh7Hi6vdUBBfvmwVIt4WH7EL_svvaty0MbbbO7741wEDz7mZrlHm9rI3jpU5q3qMNSGWQgUEtbth0N_JB72k8oW-5zQTzRkijXFi4X6_IfJnLCQWfclpN2B7hQUA1DPn5XB_LueX5xeJNEpAPDcQBJbPt-osbBb3xHIUUmL_muoe7syAskrgvdTQ"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container-low via-transparent to-transparent opacity-80"></div>
+<!-- Genre Badge Overlay -->
+<div class="absolute top-4 left-4 flex items-center gap-2">
+<span class="px-3 py-1 rounded-full font-label-sm text-label-sm uppercase bg-surface-container-lowest/80 backdrop-blur-md text-tertiary">
+              Space Arcade
+            </span>
+<span class="px-2.5 py-1 rounded-full font-label-sm text-label-sm bg-surface-container-lowest/80 backdrop-blur-md text-secondary flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary animate-ping"></span>
+              HOT
+            </span>
+</div>
+<!-- High Score pill -->
+<div class="absolute bottom-3 right-4 font-label-sm text-label-sm text-on-surface-variant bg-surface-container-lowest/90 px-3 py-1 rounded-full">
+            HI-SCORE // 94,200
+          </div>
+</div>
+<!-- Content Area -->
+<div class="flex flex-col flex-1 p-space-lg justify-between gap-space-lg">
+<div>
+<div class="flex items-center justify-between">
+<h2 class="font-headline-md text-headline-md text-on-surface group-hover:text-primary transition-colors">
+                Neon Drifter
+              </h2>
+<span class="font-label-sm text-label-sm text-outline">v1.2</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant mt-space-sm leading-relaxed">
+              Drift along an infinite synthwave cyberway while dodging laser obstacles and timing turbo boosts to pulsating beats.
+            </p>
+</div>
+<!-- Action Buttons -->
+<div class="flex items-center gap-space-sm pt-space-xs">
+<button class="flex-1 flex items-center justify-center gap-space-xs px-space-md py-space-sm rounded-full bg-gradient-to-r from-primary-container to-secondary-container text-on-primary font-label-md text-label-md uppercase tracking-wider shadow-sm hover:shadow-lg hover:brightness-110 active:scale-95 transition-all" onclick="launchGame('Neon Drifter')">
+<span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+              Play Game
+            </button>
+<button class="px-space-md py-space-sm rounded-full bg-surface-container text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high font-label-md text-label-md uppercase transition-all flex items-center gap-1" onclick="showInfo('Neon Drifter', 'Made with JavaScript and HTML5 Canvas over 3 weekends. Includes procedural grid rendering and an original chiptune synth soundtrack I created in GarageBand!')">
+<span class="material-symbols-outlined text-[16px]">terminal</span>
+              How I Made It
+            </button>
+</div>
+</div>
+</article>
+<!-- Game Card 2: Chrono Glitch (Puzzle) -->
+<article class="game-card group flex flex-col bg-surface-container-low rounded-2xl overflow-hidden shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300" data-category="puzzle">
+<!-- Thumbnail preview -->
+<div class="relative w-full aspect-[16/9] overflow-hidden bg-surface-container-highest">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out" data-alt="Chic minimalist puzzle platformer indie game screen showing a tiny glowing holographic astronaut rewinding time, leaving glowing cyan translucent ghost echoes of past actions across dark geometric platforms with violet atmospheric glow" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA1G47MU9oXu7EiUwKkZFfC33IfWz0kZ69h31bYxcQu47gqm9H3DMY-wmc11M5JCg2L2ZVGcE6Lgi_quvYtu_Zh0Nc563ZR8lqAY9q3cNVa9z5URxUO4J_wAS-EhvMP_iUx6nJuHiPkcmh_7KCcrDXOg1ABaYotB6M_tyvXPIzpzHknaEOfXhtOLRDo-NtGGg-z7qY5L6Ms9d6PfQVdH-jDTCumizyrsoTOySr1vuENDgABVlWe08G6hA"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container-low via-transparent to-transparent opacity-80"></div>
+<!-- Genre Badge Overlay -->
+<div class="absolute top-4 left-4 flex items-center gap-2">
+<span class="px-3 py-1 rounded-full font-label-sm text-label-sm uppercase bg-surface-container-lowest/80 backdrop-blur-md text-primary">
+              Puzzle Rewind
+            </span>
+</div>
+<!-- High Score pill -->
+<div class="absolute bottom-3 right-4 font-label-sm text-label-sm text-on-surface-variant bg-surface-container-lowest/90 px-3 py-1 rounded-full">
+            LEVELS // 16 CHAMBERS
+          </div>
+</div>
+<!-- Content Area -->
+<div class="flex flex-col flex-1 p-space-lg justify-between gap-space-lg">
+<div>
+<div class="flex items-center justify-between">
+<h2 class="font-headline-md text-headline-md text-on-surface group-hover:text-primary transition-colors">
+                Chrono Glitch
+              </h2>
+<span class="font-label-sm text-label-sm text-outline">v2.0</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant mt-space-sm leading-relaxed">
+              Rewind 5 seconds of spacetime to record duplicate holographic clones of yourself and open impossible blast doors.
+            </p>
+</div>
+<!-- Action Buttons -->
+<div class="flex items-center gap-space-sm pt-space-xs">
+<button class="flex-1 flex items-center justify-center gap-space-xs px-space-md py-space-sm rounded-full bg-gradient-to-r from-primary-container to-secondary-container text-on-primary font-label-md text-label-md uppercase tracking-wider shadow-sm hover:shadow-lg hover:brightness-110 active:scale-95 transition-all" onclick="launchGame('Chrono Glitch')">
+<span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+              Play Game
+            </button>
+<button class="px-space-md py-space-sm rounded-full bg-surface-container text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high font-label-md text-label-md uppercase transition-all flex items-center gap-1" onclick="showInfo('Chrono Glitch', 'Programmed array states to rewind player coordinates back in time. My math teacher helped me optimize the coordinate buffer!')">
+<span class="material-symbols-outlined text-[16px]">terminal</span>
+              How I Made It
+            </button>
+</div>
+</div>
+</article>
+<!-- Game Card 3: Void Striker (Arcade) -->
+<article class="game-card group flex flex-col bg-surface-container-low rounded-2xl overflow-hidden shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300" data-category="arcade">
+<!-- Thumbnail preview -->
+<div class="relative w-full aspect-[16/9] overflow-hidden bg-surface-container-highest">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out" data-alt="Retro vector space shooter game visual showing a sleek geometric wedge starfighter blasting electric cyan dual lasers into swarms of crystalline purple alien asteroids with neon particle sparks bursting on deep indigo space background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCaAMVpA3qUzbSPyEY_J58ckN4-huvn0Lyv-EnhwQRIasWgMjZmBA2hnTd-Zm-YeKBdAzxukBPqobTB8BpPHQrK0m_8ORPsft0vdmnIfXYXP3RbSkrP6BwWZPK7wHtsIjps3cGp0qD7FSs7UAH8iRA3dhZ1lb_izdLnd0pkVuUkWEWR7irstjy1Y8jItDG0LtcGnaf_269wJj_GQfVFEIf6F_oVTNJzhvUUR1bczd5T6M3Rb-aElTV8eg"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container-low via-transparent to-transparent opacity-80"></div>
+<!-- Genre Badge Overlay -->
+<div class="absolute top-4 left-4 flex items-center gap-2">
+<span class="px-3 py-1 rounded-full font-label-sm text-label-sm uppercase bg-surface-container-lowest/80 backdrop-blur-md text-tertiary">
+              Vector Shmup
+            </span>
+</div>
+<!-- High Score pill -->
+<div class="absolute bottom-3 right-4 font-label-sm text-label-sm text-on-surface-variant bg-surface-container-lowest/90 px-3 py-1 rounded-full">
+            WAVE // 34 SURVIVED
+          </div>
+</div>
+<!-- Content Area -->
+<div class="flex flex-col flex-1 p-space-lg justify-between gap-space-lg">
+<div>
+<div class="flex items-center justify-between">
+<h2 class="font-headline-md text-headline-md text-on-surface group-hover:text-primary transition-colors">
+                Void Striker
+              </h2>
+<span class="font-label-sm text-label-sm text-outline">v1.0</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant mt-space-sm leading-relaxed">
+              Old-school vector shoot-’em-up featuring hyperspace dashes, cluster bomb power-ups, and giant boss dreadnoughts.
+            </p>
+</div>
+<!-- Action Buttons -->
+<div class="flex items-center gap-space-sm pt-space-xs">
+<button class="flex-1 flex items-center justify-center gap-space-xs px-space-md py-space-sm rounded-full bg-gradient-to-r from-primary-container to-secondary-container text-on-primary font-label-md text-label-md uppercase tracking-wider shadow-sm hover:shadow-lg hover:brightness-110 active:scale-95 transition-all" onclick="launchGame('Void Striker')">
+<span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+              Play Game
+            </button>
+<button class="px-space-md py-space-sm rounded-full bg-surface-container text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high font-label-md text-label-md uppercase transition-all flex items-center gap-1" onclick="showInfo('Void Striker', 'Inspired by Asteroids on my dad\'s cabinet. Written with pure trigonometry for the rotation thrusters and particle collisions.')">
+<span class="material-symbols-outlined text-[16px]">terminal</span>
+              How I Made It
+            </button>
+</div>
+</div>
+</article>
+<!-- Game Card 4: Pixel Quest (Platformer) -->
+<article class="game-card group flex flex-col bg-surface-container-low rounded-2xl overflow-hidden shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300" data-category="platformer">
+<!-- Thumbnail preview -->
+<div class="relative w-full aspect-[16/9] overflow-hidden bg-surface-container-highest">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out" data-alt="Vibrant clean pixel art side scrolling platformer scene with a brave little robot wearing a neon pink cape wall jumping between dark futuristic factory pipes with glowing cyan power crystals and clean floating platforms" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAqQ8uifxYkj-DgZKT39079YqVRza-WXoWOqsHxEViG2DKQUYUiAVvIZ2iRqaIORtj9aLTqiejH0yJVgkHBRFSw6pto5divzQtqADEQK1wPW_yIIxBQIKGTwcHl3kgRksdoZh0R_-m86bLvjSkt3lr26GqfiyLa5GAmG86jrnE_PN39PXRMUGidhVJcv_xp8v_2Wx5kKTTl9P5EHZtL8NcZ7eM90zIVxMuRZekN5724xa4wSZfkv2-NsA"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container-low via-transparent to-transparent opacity-80"></div>
+<!-- Genre Badge Overlay -->
+<div class="absolute top-4 left-4 flex items-center gap-2">
+<span class="px-3 py-1 rounded-full font-label-sm text-label-sm uppercase bg-surface-container-lowest/80 backdrop-blur-md text-secondary">
+              Platformer
+            </span>
+</div>
+<!-- High Score pill -->
+<div class="absolute bottom-3 right-4 font-label-sm text-label-sm text-on-surface-variant bg-surface-container-lowest/90 px-3 py-1 rounded-full">
+            WORLDS // 3 ZONES
+          </div>
+</div>
+<!-- Content Area -->
+<div class="flex flex-col flex-1 p-space-lg justify-between gap-space-lg">
+<div>
+<div class="flex items-center justify-between">
+<h2 class="font-headline-md text-headline-md text-on-surface group-hover:text-primary transition-colors">
+                Pixel Quest
+              </h2>
+<span class="font-label-sm text-label-sm text-outline">v1.8</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant mt-space-sm leading-relaxed">
+              Help Byte the repair droid double jump and wall slide through malfunctioning robot factories to reboot the central core.
+            </p>
+</div>
+<!-- Action Buttons -->
+<div class="flex items-center gap-space-sm pt-space-xs">
+<button class="flex-1 flex items-center justify-center gap-space-xs px-space-md py-space-sm rounded-full bg-gradient-to-r from-primary-container to-secondary-container text-on-primary font-label-md text-label-md uppercase tracking-wider shadow-sm hover:shadow-lg hover:brightness-110 active:scale-95 transition-all" onclick="launchGame('Pixel Quest')">
+<span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+              Play Game
+            </button>
+<button class="px-space-md py-space-sm rounded-full bg-surface-container text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high font-label-md text-label-md uppercase transition-all flex items-center gap-1" onclick="showInfo('Pixel Quest', 'I hand-drew all 48 pixel sprite animations in Aseprite and built precise tilemap collisions so the jumping feels super snappy.')">
+<span class="material-symbols-outlined text-[16px]">terminal</span>
+              How I Made It
+            </button>
+</div>
+</div>
+</article>
+</div>
+</section>
+<!-- Clean Bottom Inspiration Banner -->
+<section class="w-full max-w-7xl mx-auto px-margin-mobile lg:px-margin pb-space-xl">
+<div class="rounded-3xl bg-surface-container p-space-xl relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-space-lg shadow-sm">
+<div class="relative z-10 max-w-xl">
+<div class="flex items-center gap-2 text-tertiary font-label-sm text-label-sm uppercase mb-space-xs">
+<span class="material-symbols-outlined text-[18px]">electric_bolt</span>
+<span>Next Project in the Works</span>
+</div>
+<h3 class="font-headline-md text-headline-md text-on-surface">
+          Building “Cyber Skate 2088”
+        </h3>
+<p class="font-body-md text-body-md text-on-surface-variant mt-space-xs">
+          An endless rail-grinding speed game built in WebGL. Follow along or drop a suggestion in my ideas box!
+        </p>
+</div>
+<div class="relative z-10 flex items-center gap-space-sm">
+<a class="px-space-lg py-space-sm rounded-full bg-surface-container-highest text-on-surface hover:bg-primary-container hover:text-on-primary font-label-md text-label-md uppercase transition-all flex items-center gap-2" data-path="ideas" href="#">
+<span>Suggest a Feature</span>
+<span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+</a>
+</div>
+<!-- Subtle background graphic accent -->
+<div class="absolute right-0 -bottom-10 opacity-10 pointer-events-none select-none text-tertiary">
+<svg fill="none" height="240" viewbox="0 0 340 240" width="340">
+<path d="M0 240L170 0L340 240H0Z" stroke="currentColor" stroke-width="2"></path>
+<line stroke="currentColor" stroke-width="1.5" x1="0" x2="340" y1="180" y2="180"></line>
+<line stroke="currentColor" stroke-width="1.5" x1="40" x2="300" y1="120" y2="120"></line>
+<line stroke="currentColor" stroke-width="1.5" x1="90" x2="250" y1="60" y2="60"></line>
+</svg>
+</div>
+</div>
+</section>
+<!-- Interactive Modal Container for "How I Made It" / Play Launch -->
+<div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-surface-container-lowest/80 backdrop-blur-md hidden opacity-0 transition-opacity duration-200" id="info-modal">
+<div class="bg-surface-container-low max-w-lg w-full rounded-2xl p-space-lg shadow-2xl transform scale-95 transition-transform duration-200" id="info-modal-content">
+<div class="flex items-center justify-between pb-space-sm">
+<div class="flex items-center gap-2">
+<span class="w-3 h-3 rounded-full bg-secondary"></span>
+<span class="font-label-sm text-label-sm uppercase text-secondary tracking-widest" id="modal-tag">Developer Notes</span>
+</div>
+<button class="w-8 h-8 rounded-full bg-surface-container hover:bg-surface-container-high flex items-center justify-center text-on-surface-variant hover:text-on-surface transition-colors" onclick="closeModal()">
+<span class="material-symbols-outlined text-[20px]">close</span>
+</button>
+</div>
+<h3 class="font-headline-md text-headline-md text-on-surface mt-space-xs" id="modal-title">Game Title</h3>
+<p class="font-body-md text-body-md text-on-surface-variant mt-space-md leading-relaxed" id="modal-body">Description</p>
+<div class="mt-space-lg pt-space-md flex justify-end gap-space-sm">
+<button class="px-space-lg py-space-xs rounded-full bg-surface-container text-on-surface font-label-md text-label-md uppercase" onclick="closeModal()">
+          Got It
+        </button>
+</div>
+</div>
+</div>
+<script>
+    function filterGames(category, buttonElement) {
+      // Update chip styling
+      const buttons = document.querySelectorAll('#filter-bar .filter-btn');
+      buttons.forEach(btn => {
+        btn.classList.remove('bg-primary-container', 'text-on-primary-container');
+        btn.classList.add('text-on-surface-variant');
+      });
+      buttonElement.classList.add('bg-primary-container', 'text-on-primary-container');
+      buttonElement.classList.remove('text-on-surface-variant');
+
+      // Filter cards
+      const cards = document.querySelectorAll('#games-grid .game-card');
+      cards.forEach(card => {
+        if (category === 'all' || card.getAttribute('data-category') === category) {
+          card.classList.remove('hidden');
+        } else {
+          card.classList.add('hidden');
+        }
+      });
+    }
+
+    function showInfo(title, description) {
+      const modal = document.getElementById('info-modal');
+      const modalContent = document.getElementById('info-modal-content');
+      document.getElementById('modal-title').textContent = title;
+      document.getElementById('modal-body').textContent = description;
+      document.getElementById('modal-tag').textContent = 'DEV LOG // ' + title.toUpperCase();
+      
+      modal.classList.remove('hidden');
+      setTimeout(() => {
+        modal.classList.remove('opacity-0');
+        modalContent.classList.remove('scale-95');
+      }, 10);
+    }
+
+    function launchGame(gameTitle) {
+      const modal = document.getElementById('info-modal');
+      const modalContent = document.getElementById('info-modal-content');
+      document.getElementById('modal-title').textContent = 'Loading ' + gameTitle;
+      document.getElementById('modal-body').textContent = 'Connecting to Leo\'s Web Arcade engine... Check your keyboard arrows or WASD keys to get ready for action!';
+      document.getElementById('modal-tag').textContent = 'ARCADE EMULATOR // READY';
+      
+      modal.classList.remove('hidden');
+      setTimeout(() => {
+        modal.classList.remove('opacity-0');
+        modalContent.classList.remove('scale-95');
+      }, 10);
+    }
+
+    function closeModal() {
+      const modal = document.getElementById('info-modal');
+      const modalContent = document.getElementById('info-modal-content');
+      modal.classList.add('opacity-0');
+      modalContent.classList.add('scale-95');
+      setTimeout(() => {
+        modal.classList.add('hidden');
+      }, 200);
+    }
+
+    // Close modal on Escape
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeModal();
+    });
+  </script>
+</div></main><footer class="w-full bg-surface-container-lowest/70 py-space-xl mt-auto"><div class="max-w-7xl mx-auto px-margin-mobile lg:px-margin flex flex-col md:flex-row items-center justify-between gap-space-md"><div class="flex items-center gap-space-sm"><span class="font-label-sm text-label-sm uppercase text-outline">SYS.ID // LEO-80S-ARCADE</span><span class="text-outline-variant font-label-sm text-label-sm">•</span><span class="font-label-sm text-label-sm text-on-surface-variant">Crafted with code, synth vibes &amp; pixel energy</span></div><div class="font-label-sm text-label-sm text-outline">© 2025 Leo. Powered by Synthwave dreams.</div></div></footer></body></html>

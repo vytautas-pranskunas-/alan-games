@@ -1,0 +1,9 @@
+node_modules/
+.DS_Store
+dist/
+.firebase/
+*.log
+apps/web/dist/
+apps/web/.angular/
+.env
+.env.*

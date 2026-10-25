@@ -1,0 +1,52 @@
+@if (teams.team(); as team) {
+  <header class="shell-header">
+    <div class="shell-header__inner">
+      <a routerLink="/games" class="brand">
+        <img [src]="team.logoSrc" [alt]="team.name + ' logo'" class="brand__logo" />
+        <div class="brand__text">
+          <span class="brand__name">{{ team.wordmark }}</span>
+          <span class="brand__badge">
+            <span class="brand__pip" aria-hidden="true"></span>
+            Age 10 · Indie Game Maker
+          </span>
+        </div>
+      </a>
+
+      <nav class="nav-pills" aria-label="Primary">
+        <a
+          routerLink="/games"
+          routerLinkActive="is-active"
+          [routerLinkActiveOptions]="{ exact: false }"
+          class="nav-pills__link"
+          >Games</a
+        >
+        <a routerLink="/about" routerLinkActive="is-active" class="nav-pills__link">About Me</a>
+        <a routerLink="/ideas" routerLinkActive="is-active" class="nav-pills__link">Ideas</a>
+      </nav>
+
+      <div class="battle-status" aria-live="polite">
+        @if (battle.liveWinner(); as winner) {
+          @if (winner === 'tie') {
+            <span class="battle-status__pill battle-status__pill--tie">
+              Tie · {{ battle.scoresLabel() }}
+            </span>
+          } @else if (battle.winnerMeta(); as winTeam) {
+            <span class="battle-status__pill battle-status__pill--win">
+              <img [src]="winTeam.logoSrc" [alt]="" class="battle-status__logo" />
+              <span class="battle-status__text">
+                {{ battle.resultLabel() }}: {{ winTeam.name }}
+                <span class="battle-status__scores">({{ battle.scoresLabel() }})</span>
+              </span>
+            </span>
+          }
+        } @else {
+          <span class="battle-status__pill">{{ battle.scoresLabel() }} · closes 21:00</span>
+        }
+      </div>
+    </div>
+  </header>
+}
+
+<main class="shell-main">
+  <router-outlet />
+</main>

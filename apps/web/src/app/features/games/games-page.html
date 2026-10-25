@@ -1,0 +1,70 @@
+<div class="page">
+  <div class="ambient" aria-hidden="true">
+    <div class="ambient__blob ambient__blob--a"></div>
+    <div class="ambient__blob ambient__blob--b"></div>
+  </div>
+
+  <section class="hero">
+    <div class="hero__copy">
+      <span class="chip">
+        <span class="chip__pip"></span>
+        Portfolio // Ready Player One
+      </span>
+      <h1>
+        Hey, I’m Alanas!
+        <span class="hero__accent">Here are the games</span> I’ve coded so far.
+      </h1>
+      <p>
+        Browser games after school — retro vibes, puzzles, and neon worlds. Grab a keyboard and press
+        Play Now.
+      </p>
+    </div>
+    <div class="hero__stats">
+      <div>
+        <span class="hero__stat-label">Games</span>
+        <span class="hero__stat-value">{{ games.totalCount() }}</span>
+      </div>
+      <div class="hero__stat-divider" aria-hidden="true"></div>
+      <div>
+        <span class="hero__stat-label">Creator</span>
+        <span class="hero__stat-value accent">Age 10</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="filters" aria-label="Filter games">
+    <div class="filters__rail">
+      @for (genre of games.genres(); track genre) {
+        <button
+          type="button"
+          class="filters__btn"
+          [class.is-active]="games.genreFilter() === genre"
+          (click)="games.setGenre(genre)"
+        >
+          {{ genre === 'all' ? 'All (' + games.totalCount() + ')' : genre }}
+        </button>
+      }
+    </div>
+  </section>
+
+  <section class="grid" aria-label="Game catalog">
+    @for (game of games.filteredGames(); track game.slug) {
+      <article class="card">
+        <div class="card__media">
+          <img [src]="games.coverUrl(game)" [alt]="game.title + ' cover'" />
+          <span class="card__genre">{{ game.genre }}</span>
+        </div>
+        <div class="card__body">
+          <div class="card__meta">
+            <time [attr.datetime]="game.dateAdded">{{ game.dateAdded | date: 'MMM d, y' }}</time>
+          </div>
+          <h2>{{ game.title }}</h2>
+          <p>{{ game.shortDescription }}</p>
+          <a class="card__play" [routerLink]="['/play', game.slug]">Play Now</a>
+        </div>
+      </article>
+    } @empty {
+      <p class="empty">No games yet — drop a folder into <code>src/games</code> and run sync.</p>
+    }
+  </section>
+</div>

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450" role="img">
+  <rect width="800" height="450" fill="#060e20"/>
+  <rect x="80" y="320" width="180" height="28" rx="6" fill="#22c55e"/>
+  <rect x="320" y="250" width="160" height="28" rx="6" fill="#38bdf8"/>
+  <rect x="540" y="180" width="140" height="28" rx="6" fill="#a855f7"/>
+  <circle cx="170" cy="280" r="22" fill="#4ade80"/>
+  <text x="40" y="60" fill="#4ade80" font-family="monospace" font-size="28">PIXEL BOUNCE</text>
+</svg>

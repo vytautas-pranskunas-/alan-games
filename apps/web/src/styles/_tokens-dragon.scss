@@ -1,0 +1,26 @@
+[data-team='dragon'] {
+  --canvas: #0a0a16;
+  --surface: #121222;
+  --surface-low: #1a1a2b;
+  --surface-high: #242338;
+  --surface-lowest: #0c0c1d;
+  --border: #25243d;
+  --border-active: #3b385e;
+  --primary: #a855f7;
+  --primary-bright: #c084fc;
+  --primary-container: #b76dff;
+  --on-primary: #0a0a16;
+  --secondary: #ec4899;
+  --secondary-bright: #f43f5e;
+  --tertiary: #00f2fe;
+  --tertiary-soft: #38bdf8;
+  --text: #f8fafc;
+  --text-muted: #94a3b8;
+  --outline: #988d9f;
+  --gradient-cta: linear-gradient(135deg, #a855f7 0%, #ec4899 100%);
+  --glow-primary: 0 0 20px rgba(168, 85, 247, 0.35);
+  --glow-secondary: 0 0 16px rgba(236, 72, 153, 0.5);
+  --font-display: 'Space Grotesk', system-ui, sans-serif;
+  --font-body: 'Outfit', system-ui, sans-serif;
+  --font-mono: 'Space Mono', 'JetBrains Mono', ui-monospace, monospace;
+}

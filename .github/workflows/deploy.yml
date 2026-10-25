@@ -1,0 +1,38 @@
+name: Deploy Firebase
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: firebase-deploy
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            apps/web/package-lock.json
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Install web dependencies
+        run: npm ci --prefix apps/web
+
+      - name: Sync games & build
+        run: npm run build
+
+      - name: Deploy Hosting + Firestore rules
+        run: npx firebase deploy --only hosting,firestore:rules --non-interactive --project pixel-quest-89fc6
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}

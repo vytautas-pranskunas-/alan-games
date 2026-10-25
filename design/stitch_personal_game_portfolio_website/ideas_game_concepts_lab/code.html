@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><meta content="web_standard" name="shell-type"/><title>Alex // 11yo Indie Game Dev</title><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&amp;family=Outfit:wght@500;600;700;800&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base { html, body { margin: 0; padding: 0; } body { overscroll-behavior: none; } main > :first-child { margin-top: 0 !important; } main > :last-child { margin-bottom: 0 !important; } } ::-webkit-scrollbar { display: none; }</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { "colors": { "error": "#ffb4ab", "surface-container-lowest": "#060e20", "surface-dim": "#0b1326", "background": "#0b1326", "on-background": "#dae2fd", "surface-variant": "#2d3449", "on-primary-container": "#004b1e", "inverse-primary": "#006e2f", "tertiary-container": "#cb94ff", "secondary-fixed": "#acedff", "surface-bright": "#31394d", "on-tertiary": "#490080", "surface": "#0b1326", "primary": "#4be277", "inverse-on-surface": "#283044", "secondary-container": "#03b5d3", "outline-variant": "#3d4a3d", "on-surface": "#dae2fd", "tertiary-fixed": "#f0dbff", "on-error-container": "#ffdad6", "on-primary-fixed-variant": "#005321", "outline": "#869585", "surface-container-low": "#131b2e", "inverse-surface": "#dae2fd", "on-primary": "#003915", "primary-fixed": "#6bff8f", "surface-container-highest": "#2d3449", "on-secondary-fixed": "#001f26", "surface-tint": "#4ae176", "secondary-fixed-dim": "#4cd7f6", "surface-container-high": "#222a3d", "tertiary-fixed-dim": "#ddb7ff", "on-error": "#690005", "primary-fixed-dim": "#4ae176", "on-secondary-container": "#00424e", "primary-container": "#22c55e", "on-primary-fixed": "#002109", "on-secondary-fixed-variant": "#004e5c", "on-tertiary-container": "#5f00a3", "error-container": "#93000a", "secondary": "#4cd7f6", "surface-container": "#171f33", "on-surface-variant": "#bccbb9", "on-tertiary-fixed": "#2c0051", "on-tertiary-fixed-variant": "#6900b3", "on-secondary": "#003640", "tertiary": "#deb8ff" }, "borderRadius": { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, "spacing": { "space-xl": "2.5rem", "space-xs": "0.25rem", "margin-mobile": "1.25rem", "gutter-mobile": "1rem", "gutter": "1.5rem", "space-lg": "1.5rem", "space-sm": "0.5rem", "margin": "2rem", "space-md": "1rem" }, "fontFamily": { "headline-lg-mobile": [ "Outfit" ], "body-lg": [ "Plus Jakarta Sans" ], "body-sm": [ "Plus Jakarta Sans" ], "label-md": [ "JetBrains Mono" ], "headline-xl": [ "Outfit" ], "headline-xl-mobile": [ "Outfit" ], "headline-sm": [ "Outfit" ], "body-md": [ "Plus Jakarta Sans" ], "label-sm": [ "JetBrains Mono" ], "headline-md": [ "Outfit" ], "headline-lg": [ "Outfit" ] }, "fontSize": { "headline-lg-mobile": [ "26px", { "lineHeight": "34px", "fontWeight": "700" } ], "body-lg": [ "18px", { "lineHeight": "28px", "fontWeight": "400" } ], "body-sm": [ "13px", { "lineHeight": "20px", "fontWeight": "400" } ], "label-md": [ "13px", { "lineHeight": "18px", "fontWeight": "500" } ], "headline-xl": [ "48px", { "lineHeight": "56px", "fontWeight": "800" } ], "headline-xl-mobile": [ "32px", { "lineHeight": "40px", "fontWeight": "800" } ], "headline-sm": [ "20px", { "lineHeight": "28px", "fontWeight": "600" } ], "body-md": [ "15px", { "lineHeight": "24px", "fontWeight": "400" } ], "label-sm": [ "11px", { "lineHeight": "16px", "fontWeight": "600" } ], "headline-md": [ "24px", { "lineHeight": "32px", "fontWeight": "600" } ], "headline-lg": [ "36px", { "lineHeight": "44px", "fontWeight": "700" } ] } } } };</script></head><body class="bg-background text-on-surface font-body-md text-body-md min-h-screen flex flex-col antialiased selection:bg-primary-container selection:text-on-primary-container"><header class="fixed top-0 left-0 right-0 z-50 bg-surface-container-lowest/80 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="h-20 max-w-[1140px] mx-auto px-margin-mobile lg:px-margin flex items-center justify-between gap-space-md"><div class="flex items-center gap-space-md"><img alt="Kid Game Dev Logo" class="h-8 w-auto object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1VR-d4kPi6Ooo3-PHCl1uHPohZaoJUWTrrU5p64JLmJI9KFa_lCAXPQBX8sEGqddbExr7u08QlGowgW3vwV2wxP_pKgUXX0dsWD-yl54vwfj6mzTRgsch-tibWPd13xmakhJPHLLNr2OPh8Gh3M-7jf2EOCivKMnqNzFnF7z0eBFcPF7CkdL4DjcTB12xmv4XQvvBvADuV3PDjVP_Z3_-ZILbeJTjTGFIOELBBAAjb8n1GmMY4Sf4QABg"/><div class="flex flex-col"><div class="flex items-center gap-space-sm"><span class="font-headline-sm text-headline-sm text-on-surface tracking-tight">Alex</span><span class="hidden sm:inline-block font-label-sm text-label-sm text-on-surface-variant font-medium">/ 11yo Indie Dev</span></div><div class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span><span class="font-label-sm text-label-sm text-primary tracking-wider uppercase font-semibold">ONLINE // BUILDING GAMES</span></div></div></div><nav class="flex items-center gap-space-xs sm:gap-space-sm p-1.5 rounded-full bg-surface-container-low" data-active-classes="bg-primary-container text-on-primary font-bold shadow-[0_0_20px_rgba(34,197,94,0.35)]"><a class="px-4 py-2 rounded-full text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-all text-center font-headline-sm text-label-md" data-path="games" href="#">Games</a><a class="px-4 py-2 rounded-full text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-all text-center font-headline-sm text-label-md" data-path="about-me" href="#">About Me</a><a aria-current="page" class="px-4 py-2 rounded-full transition-all bg-primary-container text-on-primary font-bold shadow-[0_0_20px_rgba(34,197,94,0.35)]" data-path="ideas" href="#">Ideas</a></nav><div class="flex items-center gap-space-sm"><div class="hidden md:flex items-center gap-space-xs"><span class="px-2.5 py-1 rounded-full bg-surface-container font-label-sm text-label-sm text-secondary">Scratch</span><span class="px-2.5 py-1 rounded-full bg-surface-container font-label-sm text-label-sm text-tertiary">Roblox</span><span class="px-2.5 py-1 rounded-full bg-surface-container font-label-sm text-label-sm text-primary">Itch.io</span></div><div class="hidden lg:flex items-center px-3 py-1.5 rounded-full bg-surface-container-high text-primary font-label-sm text-label-sm"><span class="material-symbols-outlined text-[16px] mr-1.5">sports_esports</span>Play in Browser</div><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="w-full flex-1 pt-20 bg-background max-w-[1140px] mx-auto px-margin-mobile lg:px-margin"><div class="flex flex-col w-full pb-space-xl">
+<!-- Dynamic Atmospheric Glow Accent -->
+<div class="relative w-full overflow-hidden mb-space-lg rounded-xl bg-surface-container-low p-space-md lg:p-space-xl">
+<div class="absolute -top-24 -right-24 w-96 h-96 bg-primary/10 rounded-full blur-3xl pointer-events-none"></div>
+<div class="absolute -bottom-20 -left-20 w-80 h-80 bg-secondary/10 rounded-full blur-3xl pointer-events-none"></div>
+<div class="relative z-10 flex flex-col md:flex-row md:items-end justify-between gap-space-lg">
+<div class="max-w-2xl">
+<div class="flex items-center gap-space-xs mb-space-xs">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full bg-primary/15 text-primary font-label-sm text-label-sm uppercase tracking-wider">
+<span class="w-1.5 h-1.5 rounded-full bg-primary mr-1.5 animate-ping"></span>
+            Incubator v0.4
+          </span>
+<span class="text-on-surface-variant font-label-sm text-label-sm">/ Public Roadmap &amp; Backlog</span>
+</div>
+<h1 class="font-headline-lg text-headline-lg text-on-surface tracking-tight mb-space-xs">
+          Game Ideas &amp; Work in Progress
+        </h1>
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">
+          These are wild mechanics, brainstorms, and prototypes I want to build next. Vote for what I should make first!
+        </p>
+</div>
+<!-- Action Pill Button -->
+<button class="inline-flex items-center justify-center gap-space-xs px-5 py-3 rounded-full bg-primary-container text-on-primary font-headline-sm text-label-md transition-all duration-200 hover:scale-105 active:scale-95 shadow-[0_0_24px_rgba(34,197,94,0.35)] shrink-0 self-start md:self-auto cursor-pointer" onclick="document.getElementById('idea-modal').classList.remove('hidden')">
+<span class="material-symbols-outlined text-[20px]">add_circle</span>
+<span>+ Suggest an Idea to Leo</span>
+</button>
+</div>
+<!-- Live Metrics Strip -->
+<div class="mt-space-lg pt-space-md grid grid-cols-2 sm:grid-cols-4 gap-space-md">
+<div class="bg-surface-container/60 rounded-lg p-space-sm flex flex-col">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Active Backlog</span>
+<span class="font-headline-md text-headline-md text-primary font-bold">14 Concepts</span>
+</div>
+<div class="bg-surface-container/60 rounded-lg p-space-sm flex flex-col">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Community Votes</span>
+<span class="font-headline-md text-headline-md text-secondary font-bold" id="total-vote-counter">480</span>
+</div>
+<div class="bg-surface-container/60 rounded-lg p-space-sm flex flex-col">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Active Engine</span>
+<span class="font-headline-md text-headline-md text-tertiary font-bold">Godot 4.3</span>
+</div>
+<div class="bg-surface-container/60 rounded-lg p-space-sm flex flex-col">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Playtest Sprint</span>
+<span class="font-headline-md text-headline-md text-on-surface font-bold">Weekend 12</span>
+</div>
+</div>
+</div>
+<!-- Filter Bar -->
+<div class="flex flex-wrap items-center justify-between gap-space-md mb-space-lg">
+<div class="flex flex-wrap items-center gap-space-xs bg-surface-container-low p-1 rounded-full" id="filter-container">
+<button class="filter-btn px-4 py-1.5 rounded-full bg-primary-container text-on-primary font-label-md text-label-md font-semibold transition-all shadow-sm" onclick="filterCards('all', this)">
+        All Concepts (4)
+      </button>
+<button class="filter-btn px-4 py-1.5 rounded-full text-on-surface-variant hover:text-on-surface hover:bg-surface-container font-label-md text-label-md transition-all" onclick="filterCards('wip', this)">
+        In Prototype (WIP)
+      </button>
+<button class="filter-btn px-4 py-1.5 rounded-full text-on-surface-variant hover:text-on-surface hover:bg-surface-container font-label-md text-label-md transition-all" onclick="filterCards('brainstorm', this)">
+        Wild Brainstorms
+      </button>
+<button class="filter-btn px-4 py-1.5 rounded-full text-on-surface-variant hover:text-on-surface hover:bg-surface-container font-label-md text-label-md transition-all" onclick="filterCards('favorites', this)">
+        Community Favorites
+      </button>
+</div>
+<!-- Sort Indicator -->
+<div class="flex items-center gap-space-xs font-label-sm text-label-sm text-on-surface-variant">
+<span class="material-symbols-outlined text-[16px] text-primary">sort</span>
+<span>Ranked by community excitement</span>
+</div>
+</div>
+<!-- Ideas Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-space-lg" id="ideas-grid">
+<!-- Card 1: Cardboard Robot Odyssey -->
+<div class="idea-card group flex flex-col justify-between bg-surface-container rounded-xl p-space-lg transition-all duration-300 hover:bg-surface-container-high hover:shadow-[0_16px_36px_rgba(34,197,94,0.12)] relative" data-category="wip favorites" data-id="1">
+<div>
+<!-- Visual Teaser with Concept Thumbnail -->
+<div class="relative w-full h-44 rounded-lg overflow-hidden mb-space-md bg-surface-container-lowest">
+<img class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" data-alt="Vibrant 3D indie game screen showing a tiny adorable robot made out of Amazon cardboard boxes and tape, exploring an oversized messy children's bedroom filled with toys and glowing fairy lights in Godot 4 stylized lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCdgfa5Ex1YfsENjJ7JMXW1y7nDXRN_w4QYcDgL983Ch3_dq-gj6o8-Tr6C-xIHuO8w1IOrr84So6TAp0DUb8FW6w3_erbbB2sRGlysCOgB3CGKJpXcIU6xKRAxHOXOMiG3JwySLdGG_z8MzesUeLZdWndkX_liiwiURWhSSQFfNV1cZPOkwnySR-z6jTQqGIgP6CV_kqbDUTdSZX6NCYlwJ0dL9gvV0c1OTOMOuKkT2xokkH5pxAo"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container via-transparent to-transparent opacity-80"></div>
+<div class="absolute top-3 left-3 flex flex-wrap gap-1.5">
+<span class="px-2.5 py-1 rounded-full bg-primary/20 backdrop-blur-md text-primary font-label-sm text-label-sm font-semibold flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">precision_manufacturing</span>
+              IN PROTOTYPE 45%
+            </span>
+<span class="px-2.5 py-1 rounded-full bg-secondary/20 backdrop-blur-md text-secondary font-label-sm text-label-sm font-semibold">
+              GODOT 4
+            </span>
+</div>
+<span class="absolute bottom-3 right-3 font-label-sm text-label-sm text-on-surface-variant bg-surface-container-lowest/80 px-2 py-0.5 rounded backdrop-blur">
+            Sprint #3
+          </span>
+</div>
+<!-- Progress Track -->
+<div class="w-full bg-surface-container-lowest h-2 rounded-full mb-space-md overflow-hidden">
+<div class="bg-primary h-full rounded-full transition-all duration-700" style="width: 45%;"></div>
+</div>
+<div class="flex items-start justify-between gap-space-sm mb-space-xs">
+<h2 class="font-headline-md text-headline-md text-on-surface group-hover:text-primary transition-colors tracking-tight">
+            Cardboard Robot Odyssey
+          </h2>
+<span class="font-label-sm text-label-sm text-primary bg-primary/10 px-2 py-1 rounded-md shrink-0 font-bold">#1 TRENDING</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant mb-space-lg leading-relaxed">
+          A game where you play as a tiny toy robot made of cardboard boxes exploring a giant messy kid bedroom. You can craft upgrades out of paperclips, rubber bands, and battery packs.
+        </p>
+<!-- Mechanical Quick Notes -->
+<div class="flex flex-wrap gap-space-xs mb-space-lg">
+<span class="px-2.5 py-1 rounded-md bg-surface-container-lowest text-on-surface-variant font-label-sm text-label-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px] text-primary">inventory_2</span> Crafting System
+          </span>
+<span class="px-2.5 py-1 rounded-md bg-surface-container-lowest text-on-surface-variant font-label-sm text-label-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px] text-secondary">explore</span> Micro-World Scaling
+          </span>
+<span class="px-2.5 py-1 rounded-md bg-surface-container-lowest text-on-surface-variant font-label-sm text-label-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px] text-tertiary">battery_charging_full</span> Power Drain
+          </span>
+</div>
+</div>
+<!-- Action Row -->
+<div class="pt-space-md mt-auto flex items-center justify-between gap-space-sm bg-surface-container-low/50 -mx-space-lg -mb-space-lg p-space-lg rounded-b-xl">
+<button class="vote-btn inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-primary-container text-on-primary font-label-md text-label-md font-bold transition-all hover:scale-102 active:scale-95 shadow-[0_0_16px_rgba(34,197,94,0.3)] cursor-pointer" onclick="handleVote(this, 184)">
+<span class="material-symbols-outlined text-[18px]">thumb_up</span>
+<span class="vote-text">▲ Vote for this Idea (184)</span>
+</button>
+<button class="inline-flex items-center gap-1 px-3 py-2 rounded-full text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors font-label-md text-label-md cursor-pointer" onclick="openDevNotes('Cardboard Robot Odyssey', 'I just finished coding the physics of the paperclip grappling hook! The rope swinging is simulated using Verlets in Godot 4.3. Next step: messy carpet friction and toy block climbing mechanics.')">
+<span class="material-symbols-outlined text-[16px]">menu_book</span>
+<span>Read Dev Notes</span>
+</button>
+</div>
+</div>
+<!-- Card 2: Gravity Switcher: Space Lab -->
+<div class="idea-card group flex flex-col justify-between bg-surface-container rounded-xl p-space-lg transition-all duration-300 hover:bg-surface-container-high hover:shadow-[0_16px_36px_rgba(76,215,246,0.12)] relative" data-category="brainstorm favorites" data-id="2">
+<div>
+<div class="relative w-full h-44 rounded-lg overflow-hidden mb-space-md bg-surface-container-lowest">
+<img class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" data-alt="Crisp sci-fi space station puzzle platformer interior with neon blue zero gravity force fields, floating bouncy lime green jello blocks, and an astronaut walking upside down on magnetic metallic ceiling in clean neon aesthetic" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCD-4DVLLHcM6ag9NYJQ0KLZ37HMfNdlf8yyCxvy3Y54bCNddrDS68Jr2WpEn2za3LExBU49xpfZ_7NsOiz6Iw1FAfbkg9PNT89GTRldaZm9kqDELJCF_XwN8vSGaRO3ZeA9ZlY5mkvJ_o82a7O6NDVOOmvSqe1Ou2worMTFsuUe1nJas4_YJurQA6n-NcP7rnBZTMl5AnFPyARocHYyPTCw3DBGmcVx65VRp4NwBZ95uk5oTvF000"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container via-transparent to-transparent opacity-80"></div>
+<div class="absolute top-3 left-3 flex flex-wrap gap-1.5">
+<span class="px-2.5 py-1 rounded-full bg-secondary/20 backdrop-blur-md text-secondary font-label-sm text-label-sm font-semibold flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">psychology</span>
+              CONCEPT BRAINSTORM
+            </span>
+<span class="px-2.5 py-1 rounded-full bg-tertiary/20 backdrop-blur-md text-tertiary font-label-sm text-label-sm font-semibold">
+              PUZZLE
+            </span>
+</div>
+<span class="absolute bottom-3 right-3 font-label-sm text-label-sm text-on-surface-variant bg-surface-container-lowest/80 px-2 py-0.5 rounded backdrop-blur">
+            Paper Prototype
+          </span>
+</div>
+<div class="w-full bg-surface-container-lowest h-2 rounded-full mb-space-md overflow-hidden">
+<div class="bg-secondary h-full rounded-full transition-all duration-700" style="width: 20%;"></div>
+</div>
+<div class="flex items-start justify-between gap-space-sm mb-space-xs">
+<h2 class="font-headline-md text-headline-md text-on-surface group-hover:text-secondary transition-colors tracking-tight">
+            Gravity Switcher: Space Lab
+          </h2>
+<span class="font-label-sm text-label-sm text-secondary bg-secondary/10 px-2 py-1 rounded-md shrink-0 font-bold">PUZZLE LAB</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant mb-space-lg leading-relaxed">
+          A puzzle platformer where clicking reverses gravity, but each room introduces crazy anomalies like bouncy zero-G jello and magnetic floors.
+        </p>
+<!-- Mechanical Quick Notes -->
+<div class="flex flex-wrap gap-space-xs mb-space-lg">
+<span class="px-2.5 py-1 rounded-md bg-surface-container-lowest text-on-surface-variant font-label-sm text-label-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px] text-secondary">sync_alt</span> Dynamic Inversion
+          </span>
+<span class="px-2.5 py-1 rounded-md bg-surface-container-lowest text-on-surface-variant font-label-sm text-label-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px] text-primary">bubble_chart</span> Zero-G Jello
+          </span>
+<span class="px-2.5 py-1 rounded-md bg-surface-container-lowest text-on-surface-variant font-label-sm text-label-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px] text-outline">qr_code_2</span> Magnetic Polarities
+          </span>
+</div>
+</div>
+<div class="pt-space-md mt-auto flex items-center justify-between gap-space-sm bg-surface-container-low/50 -mx-space-lg -mb-space-lg p-space-lg rounded-b-xl">
+<button class="vote-btn inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-surface-container-high text-on-surface hover:bg-secondary-container hover:text-on-secondary-container font-label-md text-label-md font-bold transition-all hover:scale-102 active:scale-95 cursor-pointer" onclick="handleVote(this, 129)">
+<span class="material-symbols-outlined text-[18px]">thumb_up</span>
+<span class="vote-text">▲ Vote for this Idea (129)</span>
+</button>
+<button class="inline-flex items-center gap-1 px-3 py-2 rounded-full text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors font-label-md text-label-md cursor-pointer" onclick="openDevNotes('Gravity Switcher: Space Lab', 'Drew 18 level designs on graph paper during study hall. The trick is making sure the player cant get soft-locked if they invert gravity halfway through a door!')">
+<span class="material-symbols-outlined text-[16px]">menu_book</span>
+<span>Read Dev Notes</span>
+</button>
+</div>
+</div>
+<!-- Card 3: Potion Pet Cafe -->
+<div class="idea-card group flex flex-col justify-between bg-surface-container rounded-xl p-space-lg transition-all duration-300 hover:bg-surface-container-high hover:shadow-[0_16px_36px_rgba(222,184,255,0.12)] relative" data-category="brainstorm" data-id="3">
+<div>
+<div class="relative w-full h-44 rounded-lg overflow-hidden mb-space-md bg-surface-container-lowest">
+<img class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" data-alt="Charming 16-bit pixel art cozy treehouse cafe with fantasy creatures, cats with bat wings, miniature dragons ordering glowing neon purple bubble tea drinks, pixel potion mixing cauldron on oak counter" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA93GcISrL-GzAWzIvG9POhe9dhm1b6XkgHauWcHGnkO3ttFxiVxYdhqrKvQj9wjMXvirqRb1Rs8XnUb07TFyWL_p8jvQyXYA51Kr611JZsIcPoJBcrvD8xpqmBSYQ4DNjsIZ584v7On7X2gZjMJ9I34Fwb5o02CoyPMX8KsiHY1dyv5vywfb7WFpvJ4-N_81S9FxrCfb4PO6UsAjRj2IhU1D19GFwrSCbQVGvih4vlZV1rXmAaELY"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container via-transparent to-transparent opacity-80"></div>
+<div class="absolute top-3 left-3 flex flex-wrap gap-1.5">
+<span class="px-2.5 py-1 rounded-full bg-tertiary/20 backdrop-blur-md text-tertiary font-label-sm text-label-sm font-semibold flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">brush</span>
+              EARLY SKETCH
+            </span>
+<span class="px-2.5 py-1 rounded-full bg-primary/20 backdrop-blur-md text-primary font-label-sm text-label-sm font-semibold">
+              COZY / SIM
+            </span>
+</div>
+<span class="absolute bottom-3 right-3 font-label-sm text-label-sm text-on-surface-variant bg-surface-container-lowest/80 px-2 py-0.5 rounded backdrop-blur">
+            Aseprite Art Sprites
+          </span>
+</div>
+<div class="w-full bg-surface-container-lowest h-2 rounded-full mb-space-md overflow-hidden">
+<div class="bg-tertiary h-full rounded-full transition-all duration-700" style="width: 15%;"></div>
+</div>
+<div class="flex items-start justify-between gap-space-sm mb-space-xs">
+<h2 class="font-headline-md text-headline-md text-on-surface group-hover:text-tertiary transition-colors tracking-tight">
+            Potion Pet Cafe
+          </h2>
+<span class="font-label-sm text-label-sm text-tertiary bg-tertiary/10 px-2 py-1 rounded-md shrink-0 font-bold">COZY VIBES</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant mb-space-lg leading-relaxed">
+          Run a cozy treehouse cafe where magic pets come to order color-changing bubble teas and potions. Draw pixel art recipes!
+        </p>
+<!-- Mechanical Quick Notes -->
+<div class="flex flex-wrap gap-space-xs mb-space-lg">
+<span class="px-2.5 py-1 rounded-md bg-surface-container-lowest text-on-surface-variant font-label-sm text-label-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px] text-tertiary">local_cafe</span> Custom Drink Creator
+          </span>
+<span class="px-2.5 py-1 rounded-md bg-surface-container-lowest text-on-surface-variant font-label-sm text-label-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px] text-primary">pets</span> Pet Loyalty Meter
+          </span>
+<span class="px-2.5 py-1 rounded-md bg-surface-container-lowest text-on-surface-variant font-label-sm text-label-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px] text-secondary">palette</span> Pixel Color Mixer
+          </span>
+</div>
+</div>
+<div class="pt-space-md mt-auto flex items-center justify-between gap-space-sm bg-surface-container-low/50 -mx-space-lg -mb-space-lg p-space-lg rounded-b-xl">
+<button class="vote-btn inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-surface-container-high text-on-surface hover:bg-tertiary-container hover:text-on-tertiary-container font-label-md text-label-md font-bold transition-all hover:scale-102 active:scale-95 cursor-pointer" onclick="handleVote(this, 95)">
+<span class="material-symbols-outlined text-[18px]">thumb_up</span>
+<span class="vote-text">▲ Vote for this Idea (95)</span>
+</button>
+<button class="inline-flex items-center gap-1 px-3 py-2 rounded-full text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors font-label-md text-label-md cursor-pointer" onclick="openDevNotes('Potion Pet Cafe', 'Already drew 32 distinct animal sprite walk animations in Aseprite! Planning a drag-and-drop potion stirring minigame using mouse circles.')">
+<span class="material-symbols-outlined text-[16px]">menu_book</span>
+<span>Read Dev Notes</span>
+</button>
+</div>
+</div>
+<!-- Card 4: Neon Roller 2D -->
+<div class="idea-card group flex flex-col justify-between bg-surface-container rounded-xl p-space-lg transition-all duration-300 hover:bg-surface-container-high hover:shadow-[0_16px_36px_rgba(75,226,119,0.12)] relative" data-category="wip" data-id="4">
+<div>
+<div class="relative w-full h-44 rounded-lg overflow-hidden mb-space-md bg-surface-container-lowest">
+<img class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" data-alt="Fast-paced 2D arcade physics game screenshot with a glowing electric green sphere racing through dark futuristic neon roller coaster tracks, loop-de-loops, spark trails, and vector grid backgrounds" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAjSh-6z5CxdLa89s4Dada6YRbLhIeXJHk7sxaWCs8Sl8lga-bS_i90HfBszWpmk9hSDKlhqyHje_wjHNceCh7SGx3dU1dR0vocBKodIUY2_VEU-7jr5IpsrTb4r1co5goSBHjTh_LALHHlVHCrWY1AkZac5VjXQ9r9q856ulMa6Ol2vEzrQ6eC3xfKAsLLonEHqpjKRyh2iyNLFixkHyFcOZ5BoA6LG3lSgQA6xZV7N3_4R7gcrJQ"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container via-transparent to-transparent opacity-80"></div>
+<div class="absolute top-3 left-3 flex flex-wrap gap-1.5">
+<span class="px-2.5 py-1 rounded-full bg-primary/20 backdrop-blur-md text-primary font-label-sm text-label-sm font-semibold flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">speed</span>
+              PHYSICS PROTOTYPE
+            </span>
+<span class="px-2.5 py-1 rounded-full bg-secondary/20 backdrop-blur-md text-secondary font-label-sm text-label-sm font-semibold">
+              ARCADE
+            </span>
+</div>
+<span class="absolute bottom-3 right-3 font-label-sm text-label-sm text-on-surface-variant bg-surface-container-lowest/80 px-2 py-0.5 rounded backdrop-blur">
+            Playable Build 0.1
+          </span>
+</div>
+<div class="w-full bg-surface-container-lowest h-2 rounded-full mb-space-md overflow-hidden">
+<div class="bg-primary-container h-full rounded-full transition-all duration-700" style="width: 70%;"></div>
+</div>
+<div class="flex items-start justify-between gap-space-sm mb-space-xs">
+<h2 class="font-headline-md text-headline-md text-on-surface group-hover:text-primary transition-colors tracking-tight">
+            Neon Roller 2D
+          </h2>
+<span class="font-label-sm text-label-sm text-primary bg-primary/10 px-2 py-1 rounded-md shrink-0 font-bold">FAST PACED</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant mb-space-lg leading-relaxed">
+          A neon rolling ball physics game with smooth momentum, loops, and upbeat chiptune music.
+        </p>
+<!-- Mechanical Quick Notes -->
+<div class="flex flex-wrap gap-space-xs mb-space-lg">
+<span class="px-2.5 py-1 rounded-md bg-surface-container-lowest text-on-surface-variant font-label-sm text-label-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px] text-primary">fast_forward</span> Momentum Physics
+          </span>
+<span class="px-2.5 py-1 rounded-md bg-surface-container-lowest text-on-surface-variant font-label-sm text-label-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px] text-secondary">music_note</span> Beat Sync Jumps
+          </span>
+<span class="px-2.5 py-1 rounded-md bg-surface-container-lowest text-on-surface-variant font-label-sm text-label-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px] text-tertiary">timer</span> Speedrun Ghosts
+          </span>
+</div>
+</div>
+<div class="pt-space-md mt-auto flex items-center justify-between gap-space-sm bg-surface-container-low/50 -mx-space-lg -mb-space-lg p-space-lg rounded-b-xl">
+<button class="vote-btn inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-surface-container-high text-on-surface hover:bg-primary-container hover:text-on-primary-container font-label-md text-label-md font-bold transition-all hover:scale-102 active:scale-95 cursor-pointer" onclick="handleVote(this, 72)">
+<span class="material-symbols-outlined text-[18px]">thumb_up</span>
+<span class="vote-text">▲ Vote for this Idea (72)</span>
+</button>
+<button class="inline-flex items-center gap-1 px-3 py-2 rounded-full text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors font-label-md text-label-md cursor-pointer" onclick="openDevNotes('Neon Roller 2D', 'The ball friction formula is tuned for pure game feel! Borrowed slope physics concepts from classic Sonic games. Currently making a WebGL test build.')">
+<span class="material-symbols-outlined text-[16px]">menu_book</span>
+<span>Read Dev Notes</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Bottom Interactive Suggestion Box -->
+<div class="mt-space-xl bg-surface-container-low rounded-xl p-space-lg lg:p-space-xl relative overflow-hidden">
+<div class="absolute -right-10 -bottom-10 w-64 h-64 bg-primary/5 rounded-full blur-2xl pointer-events-none"></div>
+<div class="max-w-3xl">
+<div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface-container text-primary font-label-sm text-label-sm uppercase tracking-wider mb-space-sm">
+<span class="material-symbols-outlined text-[15px]">tips_and_updates</span>
+        Community Incubator
+      </div>
+<h3 class="font-headline-lg text-headline-lg text-on-surface tracking-tight mb-space-xs">
+        Got a cool game mechanic suggestion for an 11-year-old developer?
+      </h3>
+<p class="font-body-md text-body-md text-on-surface-variant mb-space-lg">
+        I read every single note before starting my Saturday coding sessions. Tell me what power-up, puzzle mechanic, or story twist I should try prototyping!
+      </p>
+<form class="flex flex-col sm:flex-row gap-space-sm items-stretch sm:items-center" onsubmit="handleSuggestionSubmit(event)">
+<div class="relative flex-1">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">edit</span>
+<input class="w-full bg-surface-container-lowest text-on-surface placeholder:text-on-surface-variant/60 rounded-full pl-12 pr-4 py-3.5 text-body-md focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-inner" id="suggestion-input" placeholder="Describe your idea... (e.g. A grappling hook made of sticky bubblegum)" required="" type="text"/>
+</div>
+<button class="inline-flex items-center justify-center gap-space-xs px-6 py-3.5 rounded-full bg-primary-container text-on-primary font-headline-sm text-label-md font-bold hover:scale-102 active:scale-95 transition-all shadow-[0_0_20px_rgba(34,197,94,0.3)] shrink-0 cursor-pointer" type="submit">
+<span class="material-symbols-outlined text-[18px]">send</span>
+<span>Send to Leo</span>
+</button>
+</form>
+<!-- Feedback Success Message -->
+<div class="hidden mt-space-md p-space-sm bg-primary/10 rounded-lg flex items-center gap-space-sm text-primary font-label-md text-label-md" id="suggestion-alert">
+<span class="material-symbols-outlined text-[20px]">check_circle</span>
+<span>Awesome suggestion received! Saved to my sketchbook for review this weekend.</span>
+</div>
+</div>
+</div>
+<!-- Dev Notes Slide-over / Modal -->
+<div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-surface-dim/80 backdrop-blur-md hidden" id="dev-notes-modal">
+<div class="bg-surface-container rounded-2xl max-w-lg w-full p-space-lg shadow-2xl relative">
+<div class="flex items-center justify-between pb-space-md mb-space-md">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-primary text-[22px]">developer_mode</span>
+<h3 class="font-headline-sm text-headline-sm text-on-surface" id="modal-title">Dev Notes</h3>
+</div>
+<button class="w-8 h-8 rounded-full bg-surface-container-high flex items-center justify-center text-on-surface-variant hover:text-on-surface cursor-pointer" onclick="closeDevNotes()">
+<span class="material-symbols-outlined text-[18px]">close</span>
+</button>
+</div>
+<div class="bg-surface-container-lowest p-space-md rounded-xl font-body-md text-body-md text-on-surface mb-space-lg leading-relaxed" id="modal-body">
+        Dev note content goes here...
+      </div>
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-on-surface-variant">Logged by Leo @ Home Studio</span>
+<button class="px-5 py-2 rounded-full bg-surface-container-high hover:bg-surface-container-highest text-on-surface font-label-md text-label-md" onclick="closeDevNotes()">
+          Close Note
+        </button>
+</div>
+</div>
+</div>
+<!-- Idea Suggestion Modal (Triggered by Header Pill) -->
+<div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-surface-dim/80 backdrop-blur-md hidden" id="idea-modal">
+<div class="bg-surface-container rounded-2xl max-w-md w-full p-space-lg shadow-2xl relative">
+<div class="flex items-center justify-between pb-space-md mb-space-md">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-primary text-[22px]">add_task</span>
+<h3 class="font-headline-sm text-headline-sm text-on-surface">Pitch Leo a Game</h3>
+</div>
+<button class="w-8 h-8 rounded-full bg-surface-container-high flex items-center justify-center text-on-surface-variant hover:text-on-surface cursor-pointer" onclick="document.getElementById('idea-modal').classList.add('hidden')">
+<span class="material-symbols-outlined text-[18px]">close</span>
+</button>
+</div>
+<form class="flex flex-col gap-space-md" onsubmit="handleModalSubmit(event)">
+<div>
+<label class="block font-label-sm text-label-sm text-on-surface-variant mb-1 uppercase tracking-wider">Game Title / Working Name</label>
+<input class="w-full bg-surface-container-lowest text-on-surface rounded-lg px-3 py-2.5 text-body-md focus:outline-none focus:ring-1 focus:ring-primary" placeholder="e.g. Gravity Hamster" required="" type="text"/>
+</div>
+<div>
+<label class="block font-label-sm text-label-sm text-on-surface-variant mb-1 uppercase tracking-wider">The Core Fun Mechanic</label>
+<textarea class="w-full bg-surface-container-lowest text-on-surface rounded-lg px-3 py-2 text-body-md focus:outline-none focus:ring-1 focus:ring-primary" placeholder="What makes it awesome in 2 sentences?" required="" rows="3"></textarea>
+</div>
+<div>
+<label class="block font-label-sm text-label-sm text-on-surface-variant mb-1 uppercase tracking-wider">Suggested Engine</label>
+<div class="grid grid-cols-3 gap-2">
+<label class="flex items-center justify-center gap-1 p-2 rounded-lg bg-surface-container-lowest text-on-surface font-label-sm text-label-sm cursor-pointer hover:bg-surface-container-high">
+<input checked="" class="accent-primary" name="engine" type="radio" value="godot"/> Godot
+            </label>
+<label class="flex items-center justify-center gap-1 p-2 rounded-lg bg-surface-container-lowest text-on-surface font-label-sm text-label-sm cursor-pointer hover:bg-surface-container-high">
+<input class="accent-primary" name="engine" type="radio" value="scratch"/> Scratch
+            </label>
+<label class="flex items-center justify-center gap-1 p-2 rounded-lg bg-surface-container-lowest text-on-surface font-label-sm text-label-sm cursor-pointer hover:bg-surface-container-high">
+<input class="accent-primary" name="engine" type="radio" value="python"/> Python
+            </label>
+</div>
+</div>
+<div class="pt-space-sm flex items-center justify-end gap-space-sm">
+<button class="px-4 py-2 rounded-full text-on-surface-variant font-label-md text-label-md" onclick="document.getElementById('idea-modal').classList.add('hidden')" type="button">Cancel</button>
+<button class="px-5 py-2.5 rounded-full bg-primary-container text-on-primary font-label-md text-label-md font-bold" type="submit">Submit Pitch</button>
+</div>
+</form>
+</div>
+</div>
+</div>
+<script>
+  // Filter tab interactions
+  function filterCards(filter, btn) {
+    const buttons = document.querySelectorAll('#filter-container .filter-btn');
+    buttons.forEach(b => {
+      b.classList.remove('bg-primary-container', 'text-on-primary', 'font-semibold', 'shadow-sm');
+      b.classList.add('text-on-surface-variant');
+    });
+    btn.classList.add('bg-primary-container', 'text-on-primary', 'font-semibold', 'shadow-sm');
+    btn.classList.remove('text-on-surface-variant');
+
+    const cards = document.querySelectorAll('.idea-card');
+    cards.forEach(card => {
+      const categories = card.getAttribute('data-category');
+      if (filter === 'all' || categories.includes(filter)) {
+        card.style.display = 'flex';
+      } else {
+        card.style.display = 'none';
+      }
+    });
+  }
+
+  // Voting micro-interaction
+  function handleVote(btn, initialCount) {
+    if (btn.dataset.voted === 'true') return;
+    btn.dataset.voted = 'true';
+    const newCount = initialCount + 1;
+    btn.querySelector('.vote-text').textContent = '▲ Voted! (' + newCount + ')';
+    btn.classList.add('bg-primary-container', 'text-on-primary', 'shadow-[0_0_20px_rgba(34,197,94,0.4)]');
+    btn.classList.remove('bg-surface-container-high', 'text-on-surface');
+    
+    // Increment global total indicator
+    const totalEl = document.getElementById('total-vote-counter');
+    if (totalEl) {
+      totalEl.textContent = parseInt(totalEl.textContent) + 1;
+    }
+  }
+
+  // Dev notes modal
+  function openDevNotes(title, content) {
+    document.getElementById('modal-title').textContent = title;
+    document.getElementById('modal-body').textContent = content;
+    document.getElementById('dev-notes-modal').classList.remove('hidden');
+  }
+
+  function closeDevNotes() {
+    document.getElementById('dev-notes-modal').classList.add('hidden');
+  }
+
+  // Quick suggestion bar
+  function handleSuggestionSubmit(e) {
+    e.preventDefault();
+    const input = document.getElementById('suggestion-input');
+    if (input.value.trim() !== '') {
+      input.value = '';
+      const alert = document.getElementById('suggestion-alert');
+      alert.classList.remove('hidden');
+      setTimeout(() => alert.classList.add('hidden'), 5000);
+    }
+  }
+
+  // Pitch modal submission
+  function handleModalSubmit(e) {
+    e.preventDefault();
+    document.getElementById('idea-modal').classList.add('hidden');
+    const alert = document.getElementById('suggestion-alert');
+    alert.textContent = 'Awesome! Your complete pitch was saved to Leo\'s roadmap.';
+    alert.classList.remove('hidden');
+    setTimeout(() => alert.classList.add('hidden'), 5000);
+  }
+</script></main><footer class="w-full bg-surface-container-lowest mt-auto shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="max-w-[1140px] mx-auto px-margin-mobile lg:px-margin py-space-lg flex flex-col md:flex-row items-center justify-between gap-space-md"><div class="flex items-center gap-space-sm"><span class="font-label-sm text-label-sm text-on-surface-variant">© 2025 Alex • Built with code, pixels &amp; passion</span></div><div class="flex items-center gap-space-md"><span class="font-label-sm text-label-sm text-on-surface-variant flex items-center gap-1"><span class="material-symbols-outlined text-[14px] text-primary">bolt</span>Game Engine: Custom / Godot / Pygame</span></div></div></footer></body></html>

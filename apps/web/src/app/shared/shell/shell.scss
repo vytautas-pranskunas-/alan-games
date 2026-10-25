@@ -1,0 +1,189 @@
+.shell-header {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 50;
+  background: color-mix(in srgb, var(--surface) 80%, transparent);
+  backdrop-filter: blur(18px);
+  border-bottom: 1px solid var(--border);
+}
+
+.shell-header__inner {
+  max-width: 80rem;
+  margin: 0 auto;
+  padding: 0 1.25rem;
+  height: 5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+
+  @media (min-width: 1024px) {
+    padding: 0 3rem;
+  }
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.brand__logo {
+  width: 2.5rem;
+  height: 2.5rem;
+  object-fit: contain;
+  border-radius: 0.75rem;
+}
+
+.brand__text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.brand__name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1rem;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.brand__badge {
+  display: none;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--tertiary);
+  background: color-mix(in srgb, var(--surface-high) 70%, transparent);
+  border-radius: 999px;
+  padding: 0.2rem 0.65rem;
+
+  @media (min-width: 640px) {
+    display: inline-flex;
+  }
+}
+
+.brand__pip {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 999px;
+  background: var(--tertiary);
+  box-shadow: 0 0 8px var(--tertiary);
+  animation: pulse 1.6s ease-in-out infinite;
+}
+
+.nav-pills {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface-lowest) 85%, transparent);
+}
+
+.nav-pills__link {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding: 0.45rem 0.9rem;
+  border-radius: 999px;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    box-shadow 0.2s ease;
+
+  &:hover {
+    color: var(--text);
+    background: var(--surface-high);
+  }
+
+  &.is-active {
+    background: var(--primary-container);
+    color: var(--on-primary);
+    font-weight: 700;
+    box-shadow: var(--glow-primary);
+  }
+}
+
+.battle-status {
+  display: block;
+  min-width: 0;
+  max-width: 48%;
+
+  @media (min-width: 900px) {
+    max-width: none;
+  }
+}
+
+.battle-status__pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  max-width: min(100%, 22rem);
+  padding: 0.4rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--surface-lowest) 80%, transparent);
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+
+  &--win {
+    color: var(--on-primary);
+    background: var(--primary-container);
+    border-color: transparent;
+    box-shadow: var(--glow-primary);
+  }
+
+  &--tie {
+    color: var(--tertiary);
+    border-color: color-mix(in srgb, var(--tertiary) 40%, transparent);
+  }
+}
+
+.battle-status__logo {
+  width: 1.15rem;
+  height: 1.15rem;
+  object-fit: contain;
+  border-radius: 0.25rem;
+}
+
+.battle-status__text {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.battle-status__scores {
+  font-weight: 700;
+  opacity: 1;
+  letter-spacing: 0.04em;
+}
+
+.shell-main {
+  min-height: 100vh;
+  padding-top: 5rem;
+  background: var(--canvas);
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
