@@ -10,30 +10,38 @@
 .shell-header__inner {
   max-width: 80rem;
   margin: 0 auto;
-  padding: 0 1.25rem;
-  height: 5rem;
+  padding: 0 1rem;
+  height: 4.25rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
+  gap: 0.75rem;
 
   @media (min-width: 1024px) {
     padding: 0 3rem;
+    height: 5rem;
   }
 }
 
 .brand {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.65rem;
   min-width: 0;
+  flex: 1;
 }
 
 .brand__logo {
-  width: 2.5rem;
-  height: 2.5rem;
+  width: 2.25rem;
+  height: 2.25rem;
   object-fit: contain;
   border-radius: 0.75rem;
+  flex-shrink: 0;
+
+  @media (min-width: 1024px) {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
 }
 
 .brand__text {
@@ -46,9 +54,15 @@
 .brand__name {
   font-family: var(--font-display);
   font-weight: 700;
-  font-size: 1rem;
+  font-size: 0.95rem;
   letter-spacing: 0.04em;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  @media (min-width: 1024px) {
+    font-size: 1rem;
+  }
 }
 
 .brand__badge {
@@ -63,9 +77,12 @@
   background: color-mix(in srgb, var(--surface-high) 70%, transparent);
   border-radius: 999px;
   padding: 0.2rem 0.65rem;
+  width: fit-content;
 
-  @media (min-width: 640px) {
-    display: inline-flex;
+  &--desktop {
+    @media (min-width: 1024px) {
+      display: inline-flex;
+    }
   }
 }
 
@@ -76,15 +93,22 @@
   background: var(--tertiary);
   box-shadow: 0 0 8px var(--tertiary);
   animation: pulse 1.6s ease-in-out infinite;
+  flex-shrink: 0;
 }
 
 .nav-pills {
-  display: flex;
+  display: none;
   align-items: center;
   gap: 0.25rem;
   padding: 0.25rem;
   border-radius: 999px;
   background: color-mix(in srgb, var(--surface-lowest) 85%, transparent);
+
+  &--desktop {
+    @media (min-width: 1024px) {
+      display: flex;
+    }
+  }
 }
 
 .nav-pills__link {
@@ -114,12 +138,13 @@
 }
 
 .battle-status {
-  display: block;
+  display: none;
   min-width: 0;
-  max-width: 48%;
 
-  @media (min-width: 900px) {
-    max-width: none;
+  &--desktop {
+    @media (min-width: 1024px) {
+      display: block;
+    }
   }
 }
 
@@ -149,6 +174,15 @@
     color: var(--tertiary);
     border-color: color-mix(in srgb, var(--tertiary) 40%, transparent);
   }
+
+  &--drawer {
+    max-width: none;
+    width: 100%;
+    padding: 0.75rem 0.9rem;
+    border-radius: 1rem;
+    font-size: 0.7rem;
+    line-height: 1.35;
+  }
 }
 
 .battle-status__logo {
@@ -156,6 +190,7 @@
   height: 1.15rem;
   object-fit: contain;
   border-radius: 0.25rem;
+  flex-shrink: 0;
 }
 
 .battle-status__text {
@@ -172,10 +207,206 @@
   letter-spacing: 0.04em;
 }
 
+.menu-toggle {
+  display: inline-flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.28rem;
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: 0.85rem;
+  background: color-mix(in srgb, var(--surface-lowest) 85%, transparent);
+  color: var(--text);
+  cursor: pointer;
+  flex-shrink: 0;
+
+  @media (min-width: 1024px) {
+    display: none;
+  }
+
+  &[aria-expanded='true'] .menu-toggle__bar:nth-child(1) {
+    transform: translateY(0.36rem) rotate(45deg);
+  }
+
+  &[aria-expanded='true'] .menu-toggle__bar:nth-child(2) {
+    opacity: 0;
+  }
+
+  &[aria-expanded='true'] .menu-toggle__bar:nth-child(3) {
+    transform: translateY(-0.36rem) rotate(-45deg);
+  }
+}
+
+.menu-toggle__bar {
+  display: block;
+  height: 2px;
+  width: 100%;
+  border-radius: 999px;
+  background: currentColor;
+  transition:
+    transform 0.2s ease,
+    opacity 0.2s ease;
+}
+
+.menu-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: color-mix(in srgb, #000 55%, transparent);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+
+  @media (min-width: 1024px) {
+    display: none;
+  }
+
+  &.is-open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
+.site-menu {
+  position: fixed;
+  top: 0;
+  right: 0;
+  z-index: 70;
+  width: min(20.5rem, 88vw);
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding: 1.1rem 1.15rem 1.5rem;
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  box-shadow: -18px 0 48px color-mix(in srgb, #000 45%, transparent);
+  transform: translateX(105%);
+  transition: transform 0.28s ease;
+  overflow-y: auto;
+
+  @media (min-width: 1024px) {
+    display: none;
+  }
+
+  &.is-open {
+    transform: translateX(0);
+  }
+}
+
+.site-menu__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.site-menu__brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.site-menu__logo {
+  width: 2.75rem;
+  height: 2.75rem;
+  object-fit: contain;
+  border-radius: 0.85rem;
+  flex-shrink: 0;
+}
+
+.site-menu__name {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.05rem;
+  letter-spacing: 0.04em;
+}
+
+.site-menu__badge {
+  margin: 0.35rem 0 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--tertiary);
+}
+
+.site-menu__close {
+  width: 2.4rem;
+  height: 2.4rem;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  background: color-mix(in srgb, var(--surface-lowest) 85%, transparent);
+  color: var(--text-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.site-menu__battle {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.site-menu__section-label {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.site-menu__nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.site-menu__link {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding: 0.95rem 1rem;
+  border-radius: 1rem;
+  border: 1px solid transparent;
+  background: color-mix(in srgb, var(--surface-lowest) 70%, transparent);
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+
+  &.is-active {
+    color: var(--on-primary);
+    background: var(--primary-container);
+    box-shadow: var(--glow-primary);
+  }
+
+  &:hover {
+    color: var(--text);
+    border-color: var(--border);
+  }
+}
+
 .shell-main {
   min-height: 100vh;
-  padding-top: 5rem;
+  padding-top: 4.25rem;
   background: var(--canvas);
+
+  @media (min-width: 1024px) {
+    padding-top: 5rem;
+  }
 }
 
 @keyframes pulse {

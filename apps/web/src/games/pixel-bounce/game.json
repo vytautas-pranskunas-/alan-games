@@ -1,9 +1,0 @@
-{
-  "title": "Pixel Bounce",
-  "slug": "pixel-bounce",
-  "genre": "puzzle",
-  "dateAdded": "2026-10-22",
-  "shortDescription": "Bounce a glowing orb through sticky platforms and timed portals.",
-  "cover": "cover.svg",
-  "entry": "index.html"
-}
