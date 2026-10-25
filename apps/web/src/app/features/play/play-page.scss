@@ -3,6 +3,10 @@
   flex-direction: column;
   min-height: calc(100vh - 5rem);
   background: var(--canvas);
+
+  @media (orientation: landscape) and (max-height: 560px) {
+    min-height: calc(100dvh - 4.25rem);
+  }
 }
 
 .play__bar {
@@ -12,15 +16,24 @@
   padding: 0.85rem 1.25rem;
   border-bottom: 1px solid var(--border);
   background: var(--surface);
+  flex-shrink: 0;
 
   @media (min-width: 1024px) {
     padding-inline: 3rem;
+  }
+
+  @media (orientation: landscape) and (max-height: 560px) {
+    padding: 0.4rem 1rem;
   }
 
   h1 {
     margin: 0;
     font-family: var(--font-display);
     font-size: 1.1rem;
+
+    @media (orientation: landscape) and (max-height: 560px) {
+      font-size: 0.95rem;
+    }
   }
 }
 
@@ -42,6 +55,11 @@
   border: 0;
   background: #000;
   min-height: 70vh;
+
+  @media (orientation: landscape) and (max-height: 560px) {
+    min-height: 0;
+    height: calc(100dvh - 4.25rem - 2.5rem);
+  }
 }
 
 .play__missing {

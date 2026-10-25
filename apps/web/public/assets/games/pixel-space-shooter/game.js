@@ -722,8 +722,10 @@
       this.pickups = this.physics.add.group();
       this.playerLasers = this.physics.add.group({
         defaultKey: "laser",
-        maxSize: 90,
+        maxSize: 120,
+        classType: Phaser.Physics.Arcade.Image,
       });
+      this._lastAimVec = { x: 0, y: -1 };
       this.enemyLasers = this.physics.add.group({
         defaultKey: "enemy_laser",
         maxSize: 60,
@@ -969,25 +971,27 @@
     }
 
     buildHud() {
+      // Push HUD down on tablets so HP isn't covered by the site header in landscape
+      const top = this.isTouchPlay() ? 58 : 16;
       this.hud = this.add.container(0, 0).setDepth(40);
-      this.hpBarBg = this.add.rectangle(16, 16, 160, 14, 0x222233).setOrigin(0, 0);
-      this.hpBar = this.add.rectangle(16, 16, 160, 14, 0x44cc66).setOrigin(0, 0);
-      this.hpText = this.add.text(20, 14, "HP 100", {
+      this.hpBarBg = this.add.rectangle(16, top, 160, 14, 0x222233).setOrigin(0, 0);
+      this.hpBar = this.add.rectangle(16, top, 160, 14, 0x44cc66).setOrigin(0, 0);
+      this.hpText = this.add.text(20, top - 2, "HP 100", {
         fontFamily: "Courier New, monospace",
         fontSize: "12px",
         color: "#ffffff",
       });
-      this.scoreText = this.add.text(W - 16, 14, "SCORE 0", {
+      this.scoreText = this.add.text(W - 16, top - 2, "SCORE 0", {
         fontFamily: "Courier New, monospace",
         fontSize: "14px",
         color: "#7ec8ff",
       }).setOrigin(1, 0);
-      this.infoText = this.add.text(16, 36, "", {
+      this.infoText = this.add.text(16, top + 20, "", {
         fontFamily: "Courier New, monospace",
         fontSize: "12px",
         color: "#a0b0c8",
       });
-      this.buffText = this.add.text(16, 54, "", {
+      this.buffText = this.add.text(16, top + 38, "", {
         fontFamily: "Courier New, monospace",
         fontSize: "12px",
         color: "#88ddff",
@@ -1086,22 +1090,24 @@
     }
 
     aimPoint() {
-      // Touch aim stick: aim from ship along stick vector
-      if (this.touchAim.active || this.isTouchPlay()) {
-        const len = Math.hypot(this.aimVec.x, this.aimVec.y) || 1;
-        const dist = 180;
+      // Right stick aim — remember last solid direction (avoid near-zero dead zone)
+      if (this.touchAim && this.touchAim.active) {
+        const len = Math.hypot(this.aimVec.x, this.aimVec.y);
+        if (len > 0.22) {
+          this._lastAimVec = { x: this.aimVec.x / len, y: this.aimVec.y / len };
+        }
+        const a = this._lastAimVec || { x: 0, y: -1 };
         return {
-          x: this.player.x + (this.aimVec.x / len) * dist,
-          y: this.player.y + (this.aimVec.y / len) * dist,
+          x: this.player.x + a.x * 240,
+          y: this.player.y + a.y * 240,
         };
       }
       const p = this.input.activePointer;
-      // Ignore aim from fingers on the virtual sticks
-      if (p.wasTouch && (p.id === this.touchMove.id || p.id === this.touchAim.id)) {
-        const len = Math.hypot(this.aimVec.x, this.aimVec.y) || 1;
+      if (p.wasTouch && (p.id === this.touchMove.id || p.id === this.touchAim?.id)) {
+        const a = this._lastAimVec || { x: 0, y: -1 };
         return {
-          x: this.player.x + (this.aimVec.x / len) * 180,
-          y: this.player.y + (this.aimVec.y / len) * 180,
+          x: this.player.x + a.x * 240,
+          y: this.player.y + a.y * 240,
         };
       }
       return { x: p.worldX, y: p.worldY };
@@ -1197,18 +1203,37 @@
     }
 
     fireLaserShot(x, y, angle, dmg, tint) {
-      const laser = this.playerLasers.get(x, y, "laser");
-      if (!laser) return null;
+      const laser = this.playerLasers.get();
+      if (!laser) {
+        // Pool exhausted — spawn one more instead of failing silently
+        const extra = this.physics.add.image(x, y, "laser");
+        this.playerLasers.add(extra);
+        return this._launchLaser(extra, x, y, angle, dmg, tint);
+      }
+      return this._launchLaser(laser, x, y, angle, dmg, tint);
+    }
+
+    _launchLaser(laser, x, y, angle, dmg, tint) {
+      // New shot id so an old delayedCall cannot kill a reused laser mid-flight
+      laser._shotId = (laser._shotId || 0) + 1;
+      const shotId = laser._shotId;
+
       laser.setActive(true).setVisible(true);
-      laser.body.enable = true;
       laser.setDepth(3);
       laser.clearTint();
       if (tint != null) laser.setTint(tint);
-      this.physics.velocityFromRotation(angle, 560, laser.body.velocity);
-      laser.rotation = angle + Math.PI / 2;
+      laser.setPosition(x, y);
+      laser.setRotation(angle + Math.PI / 2);
       laser._dmg = dmg || 12;
-      this.time.delayedCall(1800, () => {
-        if (laser.active) this.recycleLaser(laser);
+
+      if (laser.body) {
+        laser.body.enable = true;
+        laser.body.reset(x, y);
+        this.physics.velocityFromRotation(angle, 560, laser.body.velocity);
+      }
+
+      this.time.delayedCall(2000, () => {
+        if (laser.active && laser._shotId === shotId) this.recycleLaser(laser);
       });
       return laser;
     }
