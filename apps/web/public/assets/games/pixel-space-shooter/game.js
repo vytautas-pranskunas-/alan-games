@@ -537,8 +537,9 @@
         "Shift          —  Magnetic Blast (2s / 1min cooldown)",
         "Esc            —  Pause / Resume",
         "",
-        "Shift Magnetic Blast wipes EVERYTHING for 2s (all planets too).",
-        "Pickups drift in like planets: fuel (+HP), shield (10s), triple gun (10s).",
+        "TABLET: left stick = move, right stick = aim + fire.",
+        "Above left stick: MAG blast + SUPERLASER buttons.",
+        "Pickups: fuel (+HP), shield (10s), triple gun (10s).",
       ];
       lines.forEach((line, i) => {
         this.add
@@ -701,11 +702,17 @@
       this.shieldUntil = 0;
       this.tripleUntil = 0;
       this.shieldRing = null;
+      this.touchMove = { x: 0, y: 0, active: false, id: null };
+      this.touchAim = { x: 0, y: 0, active: false, id: null, firing: false };
+      this.aimVec = { x: 0, y: -1 };
+      this.touchUi = null;
     }
 
     create() {
       SFX.settings = Storage.getSettings();
       SFX.ensure();
+      // Multi-touch for tablet sticks + blast buttons
+      this.input.addPointer(3);
 
       this.physics.world.setBounds(0, 0, W, H);
       this.stars = createStarfield(this);
@@ -777,6 +784,208 @@
       this._pauseAt = 0;
 
       this.input.keyboard.on("keydown-ESC", () => this.togglePause());
+      this.setupTouchControls();
+    }
+
+    isTouchPlay() {
+      return (
+        (typeof navigator !== "undefined" && navigator.maxTouchPoints > 0) ||
+        "ontouchstart" in window
+      );
+    }
+
+    setupTouchControls() {
+      // Always build sticks so tablets / touch laptops work; fade on pure desktop
+      const show = this.isTouchPlay();
+      const depth = 120;
+      const leftX = 110;
+      const rightX = W - 110;
+      const stickY = H - 100;
+      const baseR = 56;
+      const knobR = 24;
+
+      this.touchUi = this.add.container(0, 0).setDepth(depth).setAlpha(show ? 0.85 : 0);
+      this.touchUi.setScrollFactor(0);
+
+      // Left stick — move
+      const moveBase = this.add.circle(leftX, stickY, baseR, 0x122038, 0.45).setStrokeStyle(3, 0x7ec8ff, 0.7);
+      const moveKnob = this.add.circle(leftX, stickY, knobR, 0x7ec8ff, 0.55).setStrokeStyle(2, 0xffffff, 0.8);
+      const moveZone = this.add.circle(leftX, stickY, baseR + 28, 0x000000, 0.001).setInteractive();
+
+      // Right stick — aim + fire
+      const aimBase = this.add.circle(rightX, stickY, baseR, 0x201218, 0.45).setStrokeStyle(3, 0xff6688, 0.7);
+      const aimKnob = this.add.circle(rightX, stickY, knobR, 0xff6688, 0.55).setStrokeStyle(2, 0xffffff, 0.8);
+      const aimZone = this.add.circle(rightX, stickY, baseR + 28, 0x000000, 0.001).setInteractive();
+      const aimLabel = this.add
+        .text(rightX, stickY + baseR + 16, "AIM / FIRE", {
+          fontFamily: "Courier New, monospace",
+          fontSize: "10px",
+          color: "#ff99aa",
+        })
+        .setOrigin(0.5);
+
+      // Blast buttons above left stick
+      const btnY = stickY - 100;
+      const magBtn = this.add
+        .circle(leftX - 36, btnY, 28, 0x662288, 0.7)
+        .setStrokeStyle(2, 0xeeaaff, 0.95)
+        .setInteractive({ useHandCursor: true });
+      const magLbl = this.add
+        .text(leftX - 36, btnY, "MAG", {
+          fontFamily: "Courier New, monospace",
+          fontSize: "11px",
+          color: "#ffccff",
+        })
+        .setOrigin(0.5);
+      const superBtn = this.add
+        .circle(leftX + 36, btnY, 28, 0x224466, 0.7)
+        .setStrokeStyle(2, 0x88ddff, 0.95)
+        .setInteractive({ useHandCursor: true });
+      const superLbl = this.add
+        .text(leftX + 36, btnY, "LASER", {
+          fontFamily: "Courier New, monospace",
+          fontSize: "10px",
+          color: "#cceeff",
+        })
+        .setOrigin(0.5);
+
+      this.touchUi.add([
+        moveBase,
+        moveKnob,
+        moveZone,
+        aimBase,
+        aimKnob,
+        aimZone,
+        aimLabel,
+        magBtn,
+        magLbl,
+        superBtn,
+        superLbl,
+      ]);
+
+      this._touch = {
+        leftX,
+        rightX,
+        stickY,
+        baseR,
+        moveKnob,
+        aimKnob,
+        magBtn,
+        superBtn,
+        show,
+      };
+
+      const clampKnob = (cx, cy, px, py, maxR) => {
+        let dx = px - cx;
+        let dy = py - cy;
+        const len = Math.hypot(dx, dy) || 1;
+        if (len > maxR) {
+          dx = (dx / len) * maxR;
+          dy = (dy / len) * maxR;
+        }
+        return { dx, dy, nx: dx / maxR, ny: dy / maxR };
+      };
+
+      moveZone.on("pointerdown", (pointer) => {
+        if (this.ended || this.pausedGame) return;
+        if (this.touchMove.id != null && this.touchMove.id !== pointer.id) return;
+        this.touchUi.setAlpha(0.9);
+        this.touchMove.active = true;
+        this.touchMove.id = pointer.id;
+        const k = clampKnob(leftX, stickY, pointer.worldX, pointer.worldY, baseR);
+        moveKnob.setPosition(leftX + k.dx, stickY + k.dy);
+        this.touchMove.x = k.nx;
+        this.touchMove.y = k.ny;
+      });
+
+      aimZone.on("pointerdown", (pointer) => {
+        if (this.ended || this.pausedGame) return;
+        if (this.touchAim.id != null && this.touchAim.id !== pointer.id) return;
+        this.touchUi.setAlpha(0.9);
+        this.touchAim.active = true;
+        this.touchAim.firing = true;
+        this.touchAim.id = pointer.id;
+        const k = clampKnob(rightX, stickY, pointer.worldX, pointer.worldY, baseR);
+        aimKnob.setPosition(rightX + k.dx, stickY + k.dy);
+        this.touchAim.x = k.nx;
+        this.touchAim.y = k.ny;
+        if (Math.hypot(k.nx, k.ny) > 0.15) {
+          this.aimVec.x = k.nx;
+          this.aimVec.y = k.ny;
+        }
+      });
+
+      magBtn.on("pointerdown", (pointer) => {
+        pointer.event?.stopPropagation?.();
+        if (this.ended || this.pausedGame) return;
+        SFX.ensure();
+        this.tryMagneticBlast();
+      });
+      superBtn.on("pointerdown", (pointer) => {
+        pointer.event?.stopPropagation?.();
+        if (this.ended || this.pausedGame) return;
+        SFX.ensure();
+        this.trySuperlaser();
+      });
+
+      this.input.on("pointermove", (pointer) => {
+        if (this.ended || this.pausedGame) return;
+        if (this.touchMove.active && pointer.id === this.touchMove.id) {
+          const k = clampKnob(leftX, stickY, pointer.worldX, pointer.worldY, baseR);
+          moveKnob.setPosition(leftX + k.dx, stickY + k.dy);
+          this.touchMove.x = k.nx;
+          this.touchMove.y = k.ny;
+        }
+        if (this.touchAim.active && pointer.id === this.touchAim.id) {
+          const k = clampKnob(rightX, stickY, pointer.worldX, pointer.worldY, baseR);
+          aimKnob.setPosition(rightX + k.dx, stickY + k.dy);
+          this.touchAim.x = k.nx;
+          this.touchAim.y = k.ny;
+          if (Math.hypot(k.nx, k.ny) > 0.12) {
+            this.aimVec.x = k.nx;
+            this.aimVec.y = k.ny;
+          }
+        }
+      });
+
+      const releasePointer = (pointer) => {
+        if (pointer.id === this.touchMove.id) {
+          this.touchMove.active = false;
+          this.touchMove.id = null;
+          this.touchMove.x = 0;
+          this.touchMove.y = 0;
+          moveKnob.setPosition(leftX, stickY);
+        }
+        if (pointer.id === this.touchAim.id) {
+          this.touchAim.active = false;
+          this.touchAim.firing = false;
+          this.touchAim.id = null;
+          this.touchAim.x = 0;
+          this.touchAim.y = 0;
+          aimKnob.setPosition(rightX, stickY);
+        }
+      };
+      this.input.on("pointerup", releasePointer);
+      this.input.on("pointerupoutside", releasePointer);
+
+      if (!show) {
+        moveZone.disableInteractive();
+        aimZone.disableInteractive();
+        magBtn.disableInteractive();
+        superBtn.disableInteractive();
+      }
+
+      // Reveal + enable controls on first touch (tablets / hybrid devices)
+      this.input.on("pointerdown", (pointer) => {
+        if (!pointer.wasTouch || !this.touchUi) return;
+        if (this.touchUi.alpha < 0.5) {
+          this.touchUi.setAlpha(0.9);
+          moveZone.setInteractive();
+          aimZone.setInteractive();
+          magBtn.setInteractive({ useHandCursor: true });
+          superBtn.setInteractive({ useHandCursor: true });
+        }
+      });
     }
 
     buildHud() {
@@ -897,7 +1106,24 @@
     }
 
     aimPoint() {
+      // Touch aim stick: aim from ship along stick vector
+      if (this.touchAim.active || this.isTouchPlay()) {
+        const len = Math.hypot(this.aimVec.x, this.aimVec.y) || 1;
+        const dist = 180;
+        return {
+          x: this.player.x + (this.aimVec.x / len) * dist,
+          y: this.player.y + (this.aimVec.y / len) * dist,
+        };
+      }
       const p = this.input.activePointer;
+      // Ignore aim from fingers on the virtual sticks
+      if (p.wasTouch && (p.id === this.touchMove.id || p.id === this.touchAim.id)) {
+        const len = Math.hypot(this.aimVec.x, this.aimVec.y) || 1;
+        return {
+          x: this.player.x + (this.aimVec.x / len) * 180,
+          y: this.player.y + (this.aimVec.y / len) * 180,
+        };
+      }
       return { x: p.worldX, y: p.worldY };
     }
 
@@ -908,6 +1134,13 @@
       if (this.keys.right.isDown) vx += 1;
       if (this.keys.up.isDown) vy -= 1;
       if (this.keys.down.isDown) vy += 1;
+
+      // Left virtual stick
+      if (this.touchMove.active && (this.touchMove.x !== 0 || this.touchMove.y !== 0)) {
+        vx = this.touchMove.x;
+        vy = this.touchMove.y;
+      }
+
       if (vx !== 0 || vy !== 0) {
         const len = Math.hypot(vx, vy);
         vx = (vx / len) * PLAYER_SPEED;
@@ -923,7 +1156,11 @@
       const aim = this.aimPoint();
       this.crosshair.setPosition(aim.x, aim.y);
 
-      if (this.input.activePointer.isDown && this.input.activePointer.leftButtonDown()) {
+      const mouseFire =
+        this.input.activePointer.isDown &&
+        this.input.activePointer.leftButtonDown() &&
+        !this.input.activePointer.wasTouch;
+      if (mouseFire || this.touchAim.firing) {
         this.tryFirePrimary();
       }
 
@@ -941,6 +1178,7 @@
 
       this.updateMagneticBlast(dt);
       this.updatePowerVisuals();
+      this.updateTouchBlastButtons();
 
       const hasShield = this.time.now < this.shieldUntil;
       if (hasShield) {
@@ -950,6 +1188,15 @@
       } else {
         this.player.setAlpha(1);
       }
+    }
+
+    updateTouchBlastButtons() {
+      if (!this._touch) return;
+      const now = this.time.now;
+      const magReady = now >= this.magneticReadyAt && !this.magneticActive;
+      const superReady = now >= this.superReadyAt && !this.superFiring;
+      this._touch.magBtn.setAlpha(magReady ? 0.85 : 0.35);
+      this._touch.superBtn.setAlpha(superReady ? 0.85 : 0.35);
     }
 
     updatePowerVisuals() {
