@@ -13,9 +13,54 @@
   const SHIELD_DURATION_MS = 10000;
   const TRIPLE_DURATION_MS = 10000;
   const PLAYER_MAX_HP = 100;
-  const PLAYER_SPEED = 260;
-  const FIRE_RATE_MS = 140;
   const INVULN_MS = 900;
+
+  /** Selectable player ships (persisted in Settings). */
+  const SHIPS = {
+    interceptor: {
+      id: "interceptor",
+      name: "INTERCEPTOR",
+      blurb: "Fast · agile lasers",
+      texture: "player",
+      speed: 260,
+      fireRate: 140,
+      tripleRate: 90,
+      shotDmg: 12,
+      shotSpeed: 560,
+      dualGuns: false,
+      bodyW: 20,
+      bodyH: 16,
+      shieldR: 22,
+    },
+    dreadnought: {
+      id: "dreadnought",
+      name: "DREADNOUGHT",
+      blurb: "Slow · heavy dual cannons",
+      texture: "player_dread",
+      speed: 145,
+      fireRate: 200,
+      tripleRate: 120,
+      shotDmg: 26,
+      shotSpeed: 500,
+      dualGuns: true,
+      bodyW: 36,
+      bodyH: 26,
+      shieldR: 30,
+    },
+  };
+
+  function getSelectedShip() {
+    const id = Storage.getShipId();
+    return SHIPS[id] || SHIPS.interceptor;
+  }
+  const MAX_ALLIES = 4;
+  const ALLY_FIRE_MS = 480;
+  /** Stronger helper ships that join you (100 HP, can grab shield / triple / fuel). */
+  const ALLY_MAX_HP = 100;
+  const ALLY_HIT_RADIUS = 14;
+  const ALLY_PICKUP_RADIUS = 22;
+  /** Dev test helper join at start — off for normal play. */
+  const TEST_START_HELPER = false;
 
   const SCORE = {
     smallAsteroid: 10,
@@ -26,6 +71,7 @@
     scout: 50,
     fighter: 100,
     heavy: 250,
+    doomstar: 500,
   };
 
   /** `meters` → human distance label (m / km). */
@@ -46,6 +92,7 @@
     sound: "pss_sound",
     music: "pss_music",
     volume: "pss_volume",
+    ship: "pss_ship",
     getBest(mode) {
       return Number(localStorage.getItem(mode === "flight" ? this.flight : this.fight) || 0);
     },
@@ -55,6 +102,13 @@
       const n = Math.floor(score);
       if (n > prev) localStorage.setItem(key, String(n));
       return Math.max(n, prev);
+    },
+    getShipId() {
+      const id = localStorage.getItem(this.ship) || "interceptor";
+      return SHIPS[id] ? id : "interceptor";
+    },
+    setShipId(id) {
+      if (SHIPS[id]) localStorage.setItem(this.ship, id);
     },
     getSettings() {
       return {
@@ -139,6 +193,11 @@
       this.tone(900, 0.12, "square", 0.05);
       this.tone(1100, 0.1, "triangle", 0.04);
     },
+    allyJoin() {
+      this.tone(480, 0.08, "sine", 0.06);
+      this.tone(720, 0.12, "triangle", 0.05);
+      this.tone(960, 0.1, "square", 0.04);
+    },
     gameOver() {
       this.tone(300, 0.2, "square", 0.08);
       setTimeout(() => this.tone(200, 0.25, "square", 0.08), 180);
@@ -176,6 +235,44 @@
       ];
       drawPixels(g, px, 0, 0, 2);
       g.generateTexture("player", 32, 22);
+      g.destroy();
+    }
+
+    // Player Dreadnought — big, slow, heavy dual cannons
+    {
+      const g = scene.make.graphics({ x: 0, y: 0, add: false });
+      g.fillStyle(0x1a2230, 1);
+      g.fillRect(8, 14, 32, 28);
+      g.fillStyle(0x2a3848, 1);
+      g.fillRect(4, 18, 40, 22);
+      g.fillStyle(0x3a4a5c, 1);
+      g.fillRect(12, 6, 24, 16);
+      g.fillStyle(0x9aa8c0, 1);
+      g.fillRect(18, 2, 12, 10);
+      g.fillStyle(0x3a7ad9, 1);
+      g.fillRect(20, 4, 8, 6);
+      // Wide wings
+      g.fillStyle(0xc43c3c, 1);
+      g.fillRect(0, 20, 10, 8);
+      g.fillRect(38, 20, 10, 8);
+      g.fillStyle(0xe8eef8, 1);
+      g.fillRect(2, 22, 6, 4);
+      g.fillRect(40, 22, 6, 4);
+      // Dual heavy cannons
+      g.fillStyle(0xffaa33, 1);
+      g.fillRect(6, 8, 5, 14);
+      g.fillRect(37, 8, 5, 14);
+      g.fillStyle(0xffee88, 1);
+      g.fillRect(7, 6, 3, 4);
+      g.fillRect(38, 6, 3, 4);
+      // Engines
+      g.fillStyle(0x4ec4ff, 1);
+      g.fillRect(14, 40, 6, 8);
+      g.fillRect(28, 40, 6, 8);
+      g.fillStyle(0xffaa33, 1);
+      g.fillRect(16, 44, 2, 4);
+      g.fillRect(30, 44, 2, 4);
+      g.generateTexture("player_dread", 48, 48);
       g.destroy();
     }
 
@@ -344,6 +441,126 @@
       g.destroy();
     }
 
+    // Tiny ally wingman (pickup + attached drone)
+    {
+      const g = scene.make.graphics({ x: 0, y: 0, add: false });
+      const px = [
+        [3, 0, 0xaae8ff], [4, 0, 0xaae8ff],
+        [2, 1, 0x66ccee], [3, 1, 0xe8f8ff], [4, 1, 0xe8f8ff], [5, 1, 0x66ccee],
+        [1, 2, 0x44aadd], [2, 2, 0x88ddff], [3, 2, 0x2a88cc], [4, 2, 0x2a88cc], [5, 2, 0x88ddff], [6, 2, 0x44aadd],
+        [0, 3, 0x3388bb], [1, 3, 0x66ccee], [2, 3, 0xaae8ff], [3, 3, 0xe8f8ff], [4, 3, 0xe8f8ff], [5, 3, 0xaae8ff], [6, 3, 0x66ccee], [7, 3, 0x3388bb],
+        [2, 4, 0x44aadd], [3, 4, 0x66ffaa], [4, 4, 0x66ffaa], [5, 4, 0x44aadd],
+        [3, 5, 0xffcc66], [4, 5, 0xffcc66],
+      ];
+      drawPixels(g, px, 0, 0, 2);
+      g.generateTexture("ally_drone", 16, 12);
+      g.destroy();
+    }
+
+    // Doomstar — late-game boss enemy (bigger than heavy, dual wing cannons)
+    {
+      const g = scene.make.graphics({ x: 0, y: 0, add: false });
+      // Hull
+      g.fillStyle(0x120810, 1);
+      g.fillRect(8, 18, 48, 28);
+      g.fillStyle(0x2a1018, 1);
+      g.fillRect(14, 10, 36, 40);
+      g.fillStyle(0x3a1822, 1);
+      g.fillRect(20, 4, 24, 14);
+      // Command bridge
+      g.fillStyle(0x1a0a10, 1);
+      g.fillRect(26, 0, 12, 10);
+      g.fillStyle(0xff2244, 1);
+      g.fillRect(28, 2, 8, 5);
+      g.fillStyle(0xff88aa, 1);
+      g.fillRect(30, 3, 4, 2);
+      // Twin wing pylons
+      g.fillStyle(0x441018, 1);
+      g.fillRect(0, 16, 16, 10);
+      g.fillRect(48, 16, 16, 10);
+      g.fillStyle(0x661122, 1);
+      g.fillRect(2, 14, 12, 14);
+      g.fillRect(50, 14, 12, 14);
+      // Dual cannons (glowing)
+      g.fillStyle(0xff4466, 1);
+      g.fillRect(4, 8, 6, 12);
+      g.fillRect(54, 8, 6, 12);
+      g.fillStyle(0xffccdd, 1);
+      g.fillRect(5, 6, 4, 4);
+      g.fillRect(55, 6, 4, 4);
+      g.fillStyle(0xffee88, 1);
+      g.fillRect(6, 4, 2, 3);
+      g.fillRect(56, 4, 2, 3);
+      // Armor plates + vents
+      g.fillStyle(0x552030, 1);
+      g.fillRect(18, 22, 28, 16);
+      g.fillStyle(0xc43c3c, 1);
+      g.fillRect(22, 26, 6, 6);
+      g.fillRect(36, 26, 6, 6);
+      g.fillStyle(0x4ec4ff, 1);
+      g.fillRect(28, 28, 8, 4);
+      // Engines
+      g.fillStyle(0xff6622, 1);
+      g.fillRect(18, 44, 8, 8);
+      g.fillRect(38, 44, 8, 8);
+      g.fillStyle(0xffcc44, 1);
+      g.fillRect(20, 48, 4, 6);
+      g.fillRect(40, 48, 4, 6);
+      g.fillStyle(0xffeecc, 1);
+      g.fillRect(21, 50, 2, 4);
+      g.fillRect(41, 50, 2, 4);
+      // Dorsal fin
+      g.fillStyle(0x881122, 1);
+      g.fillRect(30, 12, 4, 12);
+      g.fillRect(28, 16, 8, 6);
+      g.generateTexture("enemy_doomstar", 64, 56);
+      g.destroy();
+    }
+
+    // Doomstar cannon bolt (fatter crimson shot)
+    {
+      const g = scene.make.graphics({ x: 0, y: 0, add: false });
+      g.fillStyle(0xff2244, 1);
+      g.fillRect(2, 0, 6, 14);
+      g.fillStyle(0xff8899, 1);
+      g.fillRect(3, 1, 4, 10);
+      g.fillStyle(0xffeef2, 1);
+      g.fillRect(4, 2, 2, 6);
+      g.generateTexture("doomstar_shot", 10, 14);
+      g.destroy();
+    }
+
+    // Doomstar twin lasers (cyan beams — alternate weapon)
+    {
+      const g = scene.make.graphics({ x: 0, y: 0, add: false });
+      g.fillStyle(0x2288ff, 1);
+      g.fillRect(1, 0, 4, 16);
+      g.fillStyle(0x88ddff, 1);
+      g.fillRect(2, 1, 2, 14);
+      g.fillStyle(0xe8f8ff, 1);
+      g.fillRect(2, 2, 2, 6);
+      g.generateTexture("doomstar_laser", 6, 16);
+      g.destroy();
+    }
+
+    // Doomstar missile (orange — alternate weapon)
+    {
+      const g = scene.make.graphics({ x: 0, y: 0, add: false });
+      g.fillStyle(0x888890, 1);
+      g.fillRect(3, 2, 6, 14);
+      g.fillStyle(0xff6622, 1);
+      g.fillRect(4, 0, 4, 6);
+      g.fillStyle(0xffcc44, 1);
+      g.fillRect(5, 1, 2, 3);
+      g.fillStyle(0xff4466, 1);
+      g.fillRect(4, 14, 2, 4);
+      g.fillRect(6, 14, 2, 4);
+      g.fillStyle(0xffaa33, 1);
+      g.fillRect(5, 16, 2, 3);
+      g.generateTexture("doomstar_missile", 12, 20);
+      g.destroy();
+    }
+
     // Crosshair
     {
       const g = scene.make.graphics({ x: 0, y: 0, add: false });
@@ -444,20 +661,28 @@
         })
         .setOrigin(0.5);
 
-      const ship = this.add.image(W / 2, 190, "player").setScale(2.5);
+      const selected = getSelectedShip();
+      const ship = this.add.image(W / 2, 175, selected.texture).setScale(selected.id === "dreadnought" ? 1.6 : 2.5);
       this.tweens.add({
         targets: ship,
-        y: 200,
+        y: 185,
         duration: 1600,
         yoyo: true,
         repeat: -1,
         ease: "Sine.easeInOut",
       });
+      this.add
+        .text(W / 2, 220, selected.name, {
+          fontFamily: "Courier New, monospace",
+          fontSize: "12px",
+          color: "#7ec8ff",
+        })
+        .setOrigin(0.5);
 
       const flightBest = Storage.getBest("flight");
       const fightBest = Storage.getBest("fight");
       this.add
-        .text(W / 2, 250, `BEST FLIGHT ${flightBest}   ·   BEST FIGHT ${fightBest}`, {
+        .text(W / 2, 248, `BEST FLIGHT ${flightBest}   ·   BEST FIGHT ${fightBest}`, {
           fontFamily: "Courier New, monospace",
           fontSize: "12px",
           color: "#8899aa",
@@ -465,10 +690,11 @@
         .setOrigin(0.5);
 
       const items = [
-        { label: "1. FLIGHT MODE", scene: "Flight", y: 300 },
-        { label: "2. FIGHT MODE", scene: "Fight", y: 340 },
-        { label: "3. CONTROLS", scene: "Controls", y: 380 },
-        { label: "4. SETTINGS", scene: "Settings", y: 420 },
+        { label: "1. FLIGHT MODE", scene: "Flight", y: 290 },
+        { label: "2. FIGHT MODE", scene: "Fight", y: 330 },
+        { label: "3. CONTROLS", scene: "Controls", y: 370 },
+        { label: "4. SETTINGS", scene: "Settings", y: 410 },
+        { label: "5. SELECT SHIP", scene: "ShipSelect", y: 450 },
       ];
 
       items.forEach((item) => {
@@ -507,10 +733,111 @@
       });
       this.input.keyboard.on("keydown-THREE", () => this.scene.start("Controls"));
       this.input.keyboard.on("keydown-FOUR", () => this.scene.start("Settings"));
+      this.input.keyboard.on("keydown-FIVE", () => this.scene.start("ShipSelect"));
     }
 
     update(_, dtMs) {
       this.stars.update(dtMs / 1000, 0.35);
+    }
+  }
+
+  class ShipSelectScene extends Phaser.Scene {
+    constructor() {
+      super("ShipSelect");
+    }
+    create() {
+      document.body.classList.add("menu-cursor");
+      this.add.rectangle(0, 0, W, H, 0x05070f, 0.92).setOrigin(0);
+      this.add
+        .text(W / 2, 48, "SELECT SHIP", {
+          fontFamily: "Courier New, monospace",
+          fontSize: "32px",
+          color: "#7ec8ff",
+        })
+        .setOrigin(0.5);
+      this.add
+        .text(W / 2, 88, "Choose your craft — saved under Settings", {
+          fontFamily: "Courier New, monospace",
+          fontSize: "13px",
+          color: "#6a88aa",
+        })
+        .setOrigin(0.5);
+
+      this.selectedId = Storage.getShipId();
+      this.cards = [];
+      const list = [SHIPS.interceptor, SHIPS.dreadnought];
+      list.forEach((ship, i) => {
+        const cx = W / 2 + (i === 0 ? -200 : 200);
+        const cy = 280;
+        const panel = this.add
+          .rectangle(cx, cy, 280, 300, 0x122038, 1)
+          .setStrokeStyle(2, 0x2a4a6a)
+          .setInteractive({ useHandCursor: true });
+        const img = this.add.image(cx, cy - 50, ship.texture).setScale(ship.id === "dreadnought" ? 2.1 : 3.2);
+        const title = this.add
+          .text(cx, cy + 40, ship.name, {
+            fontFamily: "Courier New, monospace",
+            fontSize: "18px",
+            color: "#e8eef8",
+          })
+          .setOrigin(0.5);
+        const blurb = this.add
+          .text(cx, cy + 72, ship.blurb, {
+            fontFamily: "Courier New, monospace",
+            fontSize: "13px",
+            color: "#8899aa",
+            align: "center",
+          })
+          .setOrigin(0.5);
+        const mark = this.add
+          .text(cx, cy + 110, "", {
+            fontFamily: "Courier New, monospace",
+            fontSize: "14px",
+            color: "#66ffaa",
+          })
+          .setOrigin(0.5);
+
+        const card = { ship, panel, mark, img, title, blurb };
+        this.cards.push(card);
+        const pick = () => {
+          Storage.setShipId(ship.id);
+          this.selectedId = ship.id;
+          SFX.ui();
+          this.refresh();
+        };
+        panel.on("pointerdown", pick);
+        panel.on("pointerover", () => {
+          if (this.selectedId !== ship.id) panel.setStrokeStyle(2, 0x7ec8ff);
+        });
+        panel.on("pointerout", () => this.refresh());
+        img.setInteractive({ useHandCursor: true }).on("pointerdown", pick);
+      });
+
+      this.refresh();
+
+      const back = this.add
+        .text(W / 2, 500, "[ BACK ]", {
+          fontFamily: "Courier New, monospace",
+          fontSize: "20px",
+          color: "#7ec8ff",
+        })
+        .setOrigin(0.5)
+        .setInteractive({ useHandCursor: true });
+      back.on("pointerdown", () => {
+        SFX.ui();
+        this.scene.start("Menu");
+      });
+      this.input.keyboard.on("keydown-ESC", () => this.scene.start("Menu"));
+    }
+
+    refresh() {
+      this.cards.forEach((card) => {
+        const on = card.ship.id === this.selectedId;
+        card.panel.setStrokeStyle(3, on ? 0x66ffaa : 0x2a4a6a);
+        card.panel.setFillStyle(on ? 0x1a3048 : 0x122038);
+        card.mark.setText(on ? "▶ SELECTED" : "TAP TO SELECT");
+        card.mark.setColor(on ? "#66ffaa" : "#7ec8ff");
+      });
     }
   }
 
@@ -540,6 +867,8 @@
         "TABLET: left stick = move, right stick = aim + fire.",
         "Above left stick: MAG blast + SUPERLASER buttons.",
         "Pickups: fuel (+HP), shield (10s), triple gun (10s).",
+        "Helper ships join you (100 HP) — fight, smash planets, grab pickups.",
+        "FIGHT: Doomstar is a late boss enemy — dual cannons, tougher than Heavy.",
       ];
       lines.forEach((line, i) => {
         this.add
@@ -586,47 +915,92 @@
         .setOrigin(0.5);
 
       this.soundText = this.add
-        .text(W / 2, 180, "", {
+        .text(W / 2, 130, "", {
           fontFamily: "Courier New, monospace",
-          fontSize: "22px",
+          fontSize: "20px",
           color: "#e8eef8",
         })
         .setOrigin(0.5)
         .setInteractive({ useHandCursor: true });
 
       this.musicText = this.add
-        .text(W / 2, 240, "", {
+        .text(W / 2, 175, "", {
           fontFamily: "Courier New, monospace",
-          fontSize: "22px",
+          fontSize: "20px",
           color: "#e8eef8",
         })
         .setOrigin(0.5)
         .setInteractive({ useHandCursor: true });
 
       this.volText = this.add
-        .text(W / 2, 300, "", {
+        .text(W / 2, 220, "", {
           fontFamily: "Courier New, monospace",
-          fontSize: "22px",
+          fontSize: "20px",
           color: "#e8eef8",
         })
         .setOrigin(0.5);
 
       const volDown = this.add
-        .text(W / 2 - 140, 300, "[ - ]", {
+        .text(W / 2 - 140, 220, "[ - ]", {
           fontFamily: "Courier New, monospace",
-          fontSize: "22px",
+          fontSize: "20px",
           color: "#7ec8ff",
         })
         .setOrigin(0.5)
         .setInteractive({ useHandCursor: true });
       const volUp = this.add
-        .text(W / 2 + 140, 300, "[ + ]", {
+        .text(W / 2 + 140, 220, "[ + ]", {
           fontFamily: "Courier New, monospace",
-          fontSize: "22px",
+          fontSize: "20px",
           color: "#7ec8ff",
         })
         .setOrigin(0.5)
         .setInteractive({ useHandCursor: true });
+
+      // Ship picker under settings
+      this.add
+        .text(W / 2, 275, "YOUR SHIP", {
+          fontFamily: "Courier New, monospace",
+          fontSize: "16px",
+          color: "#7ec8ff",
+        })
+        .setOrigin(0.5);
+
+      this.shipId = Storage.getShipId();
+      this.shipCards = [];
+      [SHIPS.interceptor, SHIPS.dreadnought].forEach((ship, i) => {
+        const cx = W / 2 + (i === 0 ? -160 : 160);
+        const cy = 370;
+        const panel = this.add
+          .rectangle(cx, cy, 240, 160, 0x122038, 1)
+          .setStrokeStyle(2, 0x2a4a6a)
+          .setInteractive({ useHandCursor: true });
+        const img = this.add.image(cx, cy - 28, ship.texture).setScale(ship.id === "dreadnought" ? 1.5 : 2.2);
+        const title = this.add
+          .text(cx, cy + 28, ship.name, {
+            fontFamily: "Courier New, monospace",
+            fontSize: "14px",
+            color: "#e8eef8",
+          })
+          .setOrigin(0.5);
+        const blurb = this.add
+          .text(cx, cy + 50, ship.blurb, {
+            fontFamily: "Courier New, monospace",
+            fontSize: "11px",
+            color: "#8899aa",
+          })
+          .setOrigin(0.5);
+        const card = { ship, panel, title, blurb, img };
+        this.shipCards.push(card);
+        const pick = () => {
+          Storage.setShipId(ship.id);
+          this.shipId = ship.id;
+          SFX.ui();
+          this.refresh();
+        };
+        panel.on("pointerdown", pick);
+        img.setInteractive({ useHandCursor: true }).on("pointerdown", pick);
+      });
 
       this.refresh();
       this.soundText.on("pointerdown", () => {
@@ -651,7 +1025,7 @@
       });
 
       const back = this.add
-        .text(W / 2, 480, "[ BACK ]", {
+        .text(W / 2, 500, "[ BACK ]", {
           fontFamily: "Courier New, monospace",
           fontSize: "20px",
           color: "#7ec8ff",
@@ -665,6 +1039,15 @@
       this.soundText.setText(`SOUND: ${this.settings.sound ? "ON" : "OFF"}`);
       this.musicText.setText(`MUSIC: ${this.settings.music ? "ON" : "OFF"}`);
       this.volText.setText(`VOLUME: ${Math.round(this.settings.volume * 100)}%`);
+      if (this.shipCards) {
+        this.shipId = Storage.getShipId();
+        this.shipCards.forEach((card) => {
+          const on = card.ship.id === this.shipId;
+          card.panel.setStrokeStyle(3, on ? 0x66ffaa : 0x2a4a6a);
+          card.panel.setFillStyle(on ? 0x1a3048 : 0x122038);
+          card.title.setColor(on ? "#66ffaa" : "#e8eef8");
+        });
+      }
     }
     persist() {
       Storage.saveSettings(this.settings);
@@ -702,6 +1085,7 @@
       this.shieldUntil = 0;
       this.tripleUntil = 0;
       this.shieldRing = null;
+      this.allies = [];
       this.touchMove = { x: 0, y: 0, active: false, id: null };
       this.touchAim = { x: 0, y: 0, active: false, id: null, firing: false };
       this.aimVec = { x: 0, y: -1 };
@@ -732,9 +1116,10 @@
       });
       this.particles = this.add.group();
 
-      this.player = this.physics.add.sprite(W / 2, H - 80, "player");
+      this.ship = getSelectedShip();
+      this.player = this.physics.add.sprite(W / 2, H - 80, this.ship.texture);
       this.player.setCollideWorldBounds(true);
-      this.player.body.setSize(20, 16);
+      this.player.body.setSize(this.ship.bodyW, this.ship.bodyH);
       this.player.setDepth(5);
       // Fixed forward orientation — never rotate toward mouse
       this.player.setAngle(0);
@@ -788,6 +1173,11 @@
       this.input.keyboard.on("keydown-ESC", () => this.togglePause());
       if (this.isTouchPlay()) {
         this.setupTouchControls();
+      }
+
+      // Test start: one stronger helper already joined
+      if (TEST_START_HELPER) {
+        this.recruitAlly(this.player.x - 48, this.player.y + 10);
       }
     }
 
@@ -1093,8 +1483,11 @@
       const tripleLeft = Math.max(0, this.tripleUntil - now);
       if (shieldLeft > 0) buffs.push(`SHIELD ${Math.ceil(shieldLeft / 1000)}s`);
       if (tripleLeft > 0) buffs.push(`TRIPLE ${Math.ceil(tripleLeft / 1000)}s`);
+      if (this.allies.length > 0) {
+        buffs.push(`HELPERS ${this.allies.length}/${MAX_ALLIES}`);
+      }
       this.buffText.setText(buffs.join("   "));
-      this.buffText.setColor(shieldLeft > 0 ? "#88ddff" : "#ffcc66");
+      this.buffText.setColor(shieldLeft > 0 ? "#88ddff" : this.allies.length ? "#66ffaa" : "#ffcc66");
     }
 
     aimPoint() {
@@ -1135,10 +1528,11 @@
         vy = this.touchMove.y;
       }
 
+      const speed = (this.ship && this.ship.speed) || 260;
       if (vx !== 0 || vy !== 0) {
         const len = Math.hypot(vx, vy);
-        vx = (vx / len) * PLAYER_SPEED;
-        vy = (vy / len) * PLAYER_SPEED;
+        vx = (vx / len) * speed;
+        vy = (vy / len) * speed;
         this.engineGlow.emitting = true;
       } else {
         this.engineGlow.emitting = false;
@@ -1197,8 +1591,9 @@
       const now = this.time.now;
       if (now < this.shieldUntil) {
         if (!this.shieldRing || !this.shieldRing.active) {
+          const r = (this.ship && this.ship.shieldR) || 22;
           this.shieldRing = this.add
-            .circle(this.player.x, this.player.y, 22, 0x66ccff, 0)
+            .circle(this.player.x, this.player.y, r, 0x66ccff, 0)
             .setStrokeStyle(2, 0x88ddff, 0.9)
             .setDepth(6);
         }
@@ -1233,11 +1628,13 @@
       laser.setPosition(x, y);
       laser.setRotation(angle + Math.PI / 2);
       laser._dmg = dmg || 12;
+      laser._fromAlly = false;
 
       if (laser.body) {
         laser.body.enable = true;
         laser.body.reset(x, y);
-        this.physics.velocityFromRotation(angle, 560, laser.body.velocity);
+        const shotSpeed = (this.ship && this.ship.shotSpeed) || 560;
+        this.physics.velocityFromRotation(angle, shotSpeed, laser.body.velocity);
       }
 
       this.time.delayedCall(2000, () => {
@@ -1248,9 +1645,10 @@
 
     tryFirePrimary() {
       if (this.ended || this.pausedGame || this.superFiring) return;
+      const ship = this.ship || SHIPS.interceptor;
       const now = this.time.now;
       const tripleOn = now < this.tripleUntil;
-      const rate = tripleOn ? 90 : FIRE_RATE_MS;
+      const rate = tripleOn ? ship.tripleRate : ship.fireRate;
       if (now - this.lastFire < rate) return;
       this.lastFire = now;
 
@@ -1258,15 +1656,23 @@
       const angle = Phaser.Math.Angle.Between(this.player.x, this.player.y, aim.x, aim.y);
       const px = this.player.x;
       const py = this.player.y - 8;
+      const dmg = ship.shotDmg;
 
       if (tripleOn) {
         // Three shots from ship center in a fan (left / center / right)
         const spread = 0.22;
-        this.fireLaserShot(px, py, angle - spread, 12, 0xffcc66);
-        this.fireLaserShot(px, py, angle, 14, 0x66ffaa);
-        this.fireLaserShot(px, py, angle + spread, 12, 0xffcc66);
+        this.fireLaserShot(px, py, angle - spread, dmg, 0xffcc66);
+        this.fireLaserShot(px, py, angle, dmg + 2, 0x66ffaa);
+        this.fireLaserShot(px, py, angle + spread, dmg, 0xffcc66);
+      } else if (ship.dualGuns) {
+        // Dreadnought: two heavy bolts from wing cannons
+        const side = 14;
+        const ox = Math.cos(angle + Math.PI / 2) * side;
+        const oy = Math.sin(angle + Math.PI / 2) * side;
+        this.fireLaserShot(px + ox, py + oy, angle, dmg, 0xffaa33);
+        this.fireLaserShot(px - ox, py - oy, angle, dmg, 0xffaa33);
       } else {
-        this.fireLaserShot(px, py, angle, 12);
+        this.fireLaserShot(px, py, angle, dmg);
       }
       SFX.laser();
     }
@@ -1421,21 +1827,37 @@
       }
     }
 
-    /** Pickups drift in from ahead like planets — fuel / shield / triple gun. */
+    pickupTextureKey(kind) {
+      if (kind === "shield") return "pickup_shield";
+      if (kind === "triple") return "pickup_triple";
+      if (kind === "ally") return "ally_drone";
+      return "fuel";
+    }
+
+    /** Pickups drift in from ahead like planets — fuel / shield / triple / helper. */
     spawnPickupDrift(kind) {
       if (!this.pickups) return;
       if (this.pickups.countActive(true) >= 5) return;
-      const key = kind === "shield" ? "pickup_shield" : kind === "triple" ? "pickup_triple" : "fuel";
+      const key = this.pickupTextureKey(kind);
       const x = Phaser.Math.Between(50, W - 50);
       const item = this.pickups.create(x, -30, key);
       if (!item) return;
+      this.stylePickup(item, kind);
+      const speed = Phaser.Math.Between(55, 85);
+      item.setVelocity(Phaser.Math.Between(-20, 20), speed);
+    }
+
+    stylePickup(item, kind) {
       item.setDepth(6);
       item._kind = kind;
       item._heal = 20;
-      const speed = Phaser.Math.Between(55, 85);
-      item.setVelocity(Phaser.Math.Between(-20, 20), speed);
       item.body.setSize(14, 16);
-      item.setAngularVelocity(Phaser.Math.Between(-40, 40));
+      if (kind === "ally") {
+        item.setAngularVelocity(0);
+        item.setAngle(0);
+      } else {
+        item.setAngularVelocity(Phaser.Math.Between(-40, 40));
+      }
       this.tweens.add({
         targets: item,
         scale: { from: 0.85, to: 1.15 },
@@ -1455,7 +1877,7 @@
       });
     }
 
-    /** Sometimes spawn drifting pickups (fuel, shield, triple) like planets. */
+    /** Sometimes spawn drifting pickups (fuel, shield, triple, ally) like planets. */
     tickPickupSpawns(dt) {
       if (this.magneticActive) return;
       this.pickupSpawnAcc += dt;
@@ -1465,8 +1887,9 @@
         if (Math.random() >= 0.8) return;
         const roll = Math.random();
         let kind = "fuel";
-        if (roll < 0.25) kind = "shield";
-        else if (roll < 0.5) kind = "triple";
+        if (roll < 0.22) kind = "shield";
+        else if (roll < 0.42) kind = "triple";
+        else if (roll < 0.7) kind = "ally";
         this.spawnPickupDrift(kind);
       }
     }
@@ -1475,6 +1898,8 @@
       if (!item.active || this.ended) return;
       const kind = item._kind || "fuel";
       const heal = item._heal || 20;
+      const px = item.x;
+      const py = item.y;
       item.destroy();
 
       if (kind === "shield") {
@@ -1487,6 +1912,8 @@
         SFX.triple();
         this.spawnBurst(player.x, player.y, 0xffaa33, 14);
         this.cameras.main.flash(60, 255, 180, 80);
+      } else if (kind === "ally") {
+        this.recruitAlly(px, py);
       } else {
         const before = this.hp;
         this.hp = Math.min(PLAYER_MAX_HP, this.hp + heal);
@@ -1497,6 +1924,288 @@
         }
       }
       this.updateHud();
+    }
+
+    recruitAlly(fromX, fromY) {
+      if (this.allies.length >= MAX_ALLIES) {
+        // Wing full — small heal instead
+        this.hp = Math.min(PLAYER_MAX_HP, this.hp + 8);
+        SFX.pickup();
+        this.spawnBurst(this.player.x, this.player.y, 0x66ffaa, 8);
+        return;
+      }
+      const sprite = this.add.image(fromX, fromY, "ally_drone").setDepth(5);
+      sprite.setScale(1.25);
+      this.allies.push({
+        sprite,
+        kind: "ally",
+        hp: ALLY_MAX_HP,
+        maxHp: ALLY_MAX_HP,
+        nextFire: this.time.now + 350,
+        invulnUntil: 0,
+        shieldUntil: 0,
+        tripleUntil: 0,
+        shieldRing: null,
+      });
+      SFX.allyJoin();
+      this.spawnBurst(fromX, fromY, 0x66ffaa, 12);
+      this.cameras.main.flash(50, 80, 220, 160);
+    }
+
+    clearAllies() {
+      this.allies.forEach((a) => {
+        if (a.shieldRing && a.shieldRing.active) a.shieldRing.destroy();
+        if (a.sprite && a.sprite.active) a.sprite.destroy();
+      });
+      this.allies = [];
+    }
+
+    damageAlly(ally, amount) {
+      if (!ally || !ally.sprite || !ally.sprite.active || this.ended) return;
+      if (this.time.now < ally.shieldUntil) {
+        this.spawnBurst(ally.sprite.x, ally.sprite.y, 0x88ddff, 3);
+        return;
+      }
+      if (this.time.now < ally.invulnUntil) return;
+      ally.hp -= amount;
+      ally.invulnUntil = this.time.now + 280;
+      ally.sprite.setTint(0xff6688);
+      this.time.delayedCall(120, () => {
+        if (ally.sprite && ally.sprite.active) {
+          if (this.time.now < ally.tripleUntil) ally.sprite.setTint(0xffcc66);
+          else ally.sprite.clearTint();
+        }
+      });
+      this.spawnBurst(ally.sprite.x, ally.sprite.y, 0xff8899, 5);
+      SFX.hit();
+      if (ally.hp <= 0) {
+        const x = ally.sprite.x;
+        const y = ally.sprite.y;
+        if (ally.shieldRing) {
+          ally.shieldRing.destroy();
+          ally.shieldRing = null;
+        }
+        ally.sprite.destroy();
+        const idx = this.allies.indexOf(ally);
+        if (idx >= 0) this.allies.splice(idx, 1);
+        SFX.explode();
+        this.spawnBurst(x, y, 0x66ffaa, 14);
+      }
+    }
+
+    /** Wingmen can scoop fuel / shield / triple the same way the player does. */
+    checkAllyPickups() {
+      if (!this.allies.length || !this.pickups) return;
+      const items = this.pickups.getChildren();
+      for (let p = 0; p < items.length; p++) {
+        const item = items[p];
+        if (!item.active) continue;
+        for (let i = 0; i < this.allies.length; i++) {
+          const ally = this.allies[i];
+          if (!ally.sprite || !ally.sprite.active) continue;
+          if (
+            Phaser.Math.Distance.Between(item.x, item.y, ally.sprite.x, ally.sprite.y) >
+            ALLY_PICKUP_RADIUS
+          ) {
+            continue;
+          }
+          const kind = item._kind || "fuel";
+          const heal = item._heal || 20;
+          item.destroy();
+          if (kind === "shield") {
+            ally.shieldUntil = this.time.now + SHIELD_DURATION_MS;
+            SFX.shield();
+            this.spawnBurst(ally.sprite.x, ally.sprite.y, 0x66ccff, 10);
+          } else if (kind === "triple") {
+            ally.tripleUntil = this.time.now + TRIPLE_DURATION_MS;
+            ally.sprite.setTint(0xffcc66);
+            SFX.triple();
+            this.spawnBurst(ally.sprite.x, ally.sprite.y, 0xffaa33, 10);
+          } else if (kind === "ally") {
+            // Extra helper scooped by a wingman — recruit for the player
+            this.recruitAlly(ally.sprite.x, ally.sprite.y);
+          } else {
+            ally.hp = Math.min(ally.maxHp || ALLY_MAX_HP, ally.hp + heal);
+            SFX.pickup();
+            this.spawnBurst(ally.sprite.x, ally.sprite.y, 0x66ff99, 8);
+          }
+          break;
+        }
+      }
+    }
+
+    /** Enemy bolts / bodies can hurt wingmen (several hits to kill). */
+    checkAllyDamage() {
+      if (!this.allies.length) return;
+
+      if (this.enemyLasers) {
+        this.enemyLasers.getChildren().forEach((bolt) => {
+          if (!bolt.active) return;
+          for (let i = 0; i < this.allies.length; i++) {
+            const ally = this.allies[i];
+            if (!ally.sprite || !ally.sprite.active) continue;
+            if (
+              Phaser.Math.Distance.Between(bolt.x, bolt.y, ally.sprite.x, ally.sprite.y) <
+              ALLY_HIT_RADIUS
+            ) {
+              const dmg = bolt._dmg || 8;
+              bolt.destroy();
+              this.damageAlly(ally, dmg);
+              break;
+            }
+          }
+        });
+      }
+
+      if (this.mode === "fight" && this.enemies) {
+        this.enemies.getChildren().forEach((enemy) => {
+          if (!enemy.active) return;
+          for (let i = 0; i < this.allies.length; i++) {
+            const ally = this.allies[i];
+            if (!ally.sprite || !ally.sprite.active) continue;
+            if (
+              Phaser.Math.Distance.Between(enemy.x, enemy.y, ally.sprite.x, ally.sprite.y) <
+              (enemy._radius || 14) + 10
+            ) {
+              this.damageAlly(ally, 12);
+            }
+          }
+        });
+      }
+
+      if (this.mode === "flight" && this.obstacles) {
+        this.obstacles.getChildren().forEach((obs) => {
+          if (!obs.active) return;
+          for (let i = 0; i < this.allies.length; i++) {
+            const ally = this.allies[i];
+            if (!ally.sprite || !ally.sprite.active) continue;
+            if (
+              Phaser.Math.Distance.Between(obs.x, obs.y, ally.sprite.x, ally.sprite.y) <
+              (obs._radius || 12) + 8
+            ) {
+              this.damageAlly(ally, obs._touchDmg || 15);
+            }
+          }
+        });
+      }
+    }
+
+    isPlanetObstacle(obs) {
+      if (!obs || !obs.active) return false;
+      if (obs._indestructible) return true;
+      const key = obs.texture && String(obs.texture.key);
+      return !!key && key.startsWith("planet");
+    }
+
+    findAllyTarget(ally) {
+      let best = null;
+      let bestDist = 440;
+      const ax = ally.sprite.x;
+      const ay = ally.sprite.y;
+
+      if (this.mode === "flight") {
+        this.obstacles.getChildren().forEach((obs) => {
+          if (!this.isPlanetObstacle(obs)) return;
+          const d = Phaser.Math.Distance.Between(ax, ay, obs.x, obs.y);
+          if (d < bestDist) {
+            bestDist = d;
+            best = obs;
+          }
+        });
+      } else {
+        this.enemies.getChildren().forEach((enemy) => {
+          if (!enemy.active) return;
+          const d = Phaser.Math.Distance.Between(ax, ay, enemy.x, enemy.y);
+          if (d < bestDist) {
+            bestDist = d;
+            best = enemy;
+          }
+        });
+      }
+      return best;
+    }
+
+    updateAllies() {
+      if (!this.allies.length || !this.player) return;
+      const n = this.allies.length;
+      const now = this.time.now;
+
+      for (let i = this.allies.length - 1; i >= 0; i--) {
+        const ally = this.allies[i];
+        if (!ally.sprite || !ally.sprite.active) {
+          this.allies.splice(i, 1);
+          continue;
+        }
+
+        const ang = (Math.PI * 2 * i) / n + now / 900;
+        const radius = 34 + n * 5;
+        const tx = this.player.x + Math.cos(ang) * radius;
+        const ty = this.player.y + Math.sin(ang) * radius + 4;
+        ally.sprite.x += (tx - ally.sprite.x) * 0.22;
+        ally.sprite.y += (ty - ally.sprite.y) * 0.22;
+
+        const hasShield = now < ally.shieldUntil;
+        if (hasShield) {
+          if (!ally.shieldRing || !ally.shieldRing.active) {
+            ally.shieldRing = this.add
+              .circle(ally.sprite.x, ally.sprite.y, 14, 0x66ccff, 0.2)
+              .setStrokeStyle(2, 0x88ddff, 0.85)
+              .setDepth(4);
+          }
+          ally.shieldRing.setPosition(ally.sprite.x, ally.sprite.y);
+          ally.shieldRing.setAlpha(0.5 + Math.sin(now / 90) * 0.3);
+        } else if (ally.shieldRing) {
+          ally.shieldRing.destroy();
+          ally.shieldRing = null;
+        }
+
+        if (now >= ally.tripleUntil && ally.sprite.tintTopLeft === 0xffcc66) {
+          ally.sprite.clearTint();
+        }
+
+        const target = this.findAllyTarget(ally);
+        if (target) {
+          const face = Phaser.Math.Angle.Between(ally.sprite.x, ally.sprite.y, target.x, target.y);
+          ally.sprite.setRotation(face + Math.PI / 2);
+        } else {
+          ally.sprite.setRotation(0);
+        }
+
+        if (this.ended || this.pausedGame || this.superFiring) continue;
+        const tripleOn = now < ally.tripleUntil;
+        const rate = tripleOn ? 110 : ALLY_FIRE_MS;
+        if (now < ally.nextFire) continue;
+        ally.nextFire = now + rate + i * 30;
+        if (!target) continue;
+
+        const angle = Phaser.Math.Angle.Between(ally.sprite.x, ally.sprite.y, target.x, target.y);
+        const ax = ally.sprite.x;
+        const ay = ally.sprite.y;
+        if (tripleOn) {
+          const spread = 0.2;
+          const mk = (a, dmg, tint) => {
+            const laser = this.fireLaserShot(ax, ay, a, dmg, tint);
+            if (laser) laser._fromAlly = true;
+          };
+          if (this.mode === "flight") {
+            mk(angle - spread, 9999, 0xffcc66);
+            mk(angle, 9999, 0x66ffaa);
+            mk(angle + spread, 9999, 0xffcc66);
+          } else {
+            mk(angle - spread, 11, 0xffcc66);
+            mk(angle, 14, 0x66ffaa);
+            mk(angle + spread, 11, 0xffcc66);
+          }
+        } else {
+          const dmg = this.mode === "flight" ? 9999 : 12;
+          const laser = this.fireLaserShot(ax, ay, angle, dmg, 0x66ffcc);
+          if (laser) laser._fromAlly = true;
+        }
+        if (i === 0) SFX.laser();
+      }
+
+      this.checkAllyPickups();
+      this.checkAllyDamage();
     }
 
     updateMagneticBlast(dt) {
@@ -1588,6 +2297,11 @@
     onLaserHitObstacle(laser, obs) {
       if (!laser.active || !obs.active) return;
       this.recycleLaser(laser);
+      // Ally wingmen can vaporize planets in flight mode
+      if (laser._fromAlly && this.isPlanetObstacle(obs)) {
+        this.vaporizeObstacle(obs);
+        return;
+      }
       if (obs._indestructible) {
         this.spawnBurst(laser.x, laser.y, 0x88aaff, 4);
         return;
@@ -1657,19 +2371,40 @@
       this.damageEnemy(enemy, 20, false);
     }
 
-    fireEnemyProjectile(enemy, speed, key, dmg) {
-      const bolt = this.enemyLasers.create(enemy.x, enemy.y, key || "enemy_laser");
-      if (!bolt) return;
+    fireEnemyProjectile(enemy, speed, key, dmg, offsetX, offsetY, opts) {
+      const ox = offsetX || 0;
+      const oy = offsetY || 0;
+      const options = opts || {};
+      const bolt = this.enemyLasers.create(enemy.x + ox, enemy.y + oy, key || "enemy_laser");
+      if (!bolt) return null;
       bolt.setDepth(3);
       bolt._dmg = dmg || 8;
+      bolt._homing = !!options.homing;
+      bolt._homingTurn = options.homingTurn || 0.05;
+      bolt._speed = speed;
       const angle = Phaser.Math.Angle.Between(enemy.x, enemy.y, this.player.x, this.player.y);
-      // Slight inaccuracy so player can dodge
-      const jitter = Phaser.Math.FloatBetween(-0.18, 0.18);
+      // Slight inaccuracy so player can dodge (missiles lock tighter)
+      const jitter = options.homing
+        ? Phaser.Math.FloatBetween(-0.06, 0.06)
+        : Phaser.Math.FloatBetween(-0.18, 0.18);
       this.physics.velocityFromRotation(angle + jitter, speed, bolt.body.velocity);
       bolt.rotation = angle + Math.PI / 2;
-      SFX.enemyLaser();
-      this.time.delayedCall(2500, () => {
+      if (!options.silent) SFX.enemyLaser();
+      this.time.delayedCall(options.lifeMs || 2500, () => {
         if (bolt.active) bolt.destroy();
+      });
+      return bolt;
+    }
+
+    updateHomingProjectiles() {
+      if (!this.enemyLasers || !this.player) return;
+      this.enemyLasers.getChildren().forEach((bolt) => {
+        if (!bolt.active || !bolt._homing || !bolt.body) return;
+        const desired = Phaser.Math.Angle.Between(bolt.x, bolt.y, this.player.x, this.player.y);
+        const cur = Math.atan2(bolt.body.velocity.y, bolt.body.velocity.x);
+        const next = Phaser.Math.Angle.RotateTo(cur, desired, bolt._homingTurn || 0.05);
+        this.physics.velocityFromRotation(next, bolt._speed || 180, bolt.body.velocity);
+        bolt.rotation = next + Math.PI / 2;
       });
     }
 
@@ -1744,6 +2479,13 @@
         this.invulnUntil += pausedFor;
         this.shieldUntil += pausedFor;
         this.tripleUntil += pausedFor;
+        this.allies.forEach((a) => {
+          if (!a) return;
+          a.shieldUntil += pausedFor;
+          a.tripleUntil += pausedFor;
+          a.invulnUntil += pausedFor;
+          a.nextFire += pausedFor;
+        });
         this.enemies.getChildren().forEach((e) => {
           if (e && e._nextShot != null) e._nextShot += pausedFor;
         });
@@ -1762,6 +2504,7 @@
       this.physics.pause();
       this.engineGlow.emitting = false;
       this.player.setVisible(false);
+      this.clearAllies();
       this.spawnBurst(this.player.x, this.player.y, 0xffaa44, 40);
       SFX.gameOver();
       document.body.classList.add("menu-cursor");
@@ -1860,6 +2603,7 @@
       this.survivalMs += delta;
       this.stars.update(dt, this.mode === "flight" ? 1.2 : 0.5);
       this.updatePlayer(dt);
+      this.updateAllies();
       this.updatePickups();
       this.tickPickupSpawns(dt);
       this.cleanupOffscreen();
@@ -2003,9 +2747,10 @@
         spawnInterval: Math.max(1.2, 4.0 - t * 0.03),
         // Asteroids appear more often later
         asteroidInterval: Math.max(1.4, 3.2 - t * 0.02),
-        // Chance of stronger ship types
+        // Scout → fighter → heavy first; Doomstar only late (after ~3 min)
         fighterChance: t < 30 ? 0 : t < 60 ? 0.25 : t < 120 ? 0.4 : 0.5,
         heavyChance: t < 60 ? 0 : t < 120 ? 0.12 : t < 180 ? 0.22 : 0.3,
+        doomstarChance: t < 180 ? 0 : t < 240 ? 0.08 : 0.14,
         // Mild combat pressure scaling (not laser speed spam)
         fireRateScale: Math.max(0.65, 1 - t * 0.002),
         moveScale: Math.min(1.25, 1 + t * 0.0015),
@@ -2013,8 +2758,15 @@
       };
     }
 
+    hasActiveDoomstar() {
+      return this.enemies.getChildren().some((e) => e.active && e._type === "doomstar");
+    }
+
     pickEnemyType(diff) {
       const r = Math.random();
+      if (diff.doomstarChance > 0 && r < diff.doomstarChance && !this.hasActiveDoomstar()) {
+        return "doomstar";
+      }
       if (r < diff.heavyChance) return "heavy";
       if (r < diff.heavyChance + diff.fighterChance) return "fighter";
       return "scout";
@@ -2024,37 +2776,48 @@
       const t = this.survivalMs / 1000;
       const diff = this.getDifficulty(t);
       this.wave = diff.wave;
-      const type = this.pickEnemyType(diff);
+      this.spawnEnemyOfType(this.pickEnemyType(diff));
+    }
+
+    spawnEnemyOfType(type) {
+      const t = this.survivalMs / 1000;
+      const diff = this.getDifficulty(t);
 
       const edge = Phaser.Math.Between(0, 3);
       let x;
       let y;
       if (edge === 0) {
         x = Phaser.Math.Between(40, W - 40);
-        y = -30;
+        y = -40;
       } else if (edge === 1) {
         x = Phaser.Math.Between(40, W - 40);
-        y = H + 30;
+        y = H + 40;
       } else if (edge === 2) {
-        x = -30;
+        x = -40;
         y = Phaser.Math.Between(40, H - 40);
       } else {
-        x = W + 30;
+        x = W + 40;
         y = Phaser.Math.Between(40, H - 40);
       }
 
       // Don't spawn on player
-      if (Phaser.Math.Distance.Between(x, y, this.player.x, this.player.y) < 140) {
-        y = 40;
-        x = this.player.x < W / 2 ? W - 60 : 60;
+      if (Phaser.Math.Distance.Between(x, y, this.player.x, this.player.y) < 160) {
+        y = 50;
+        x = this.player.x < W / 2 ? W - 80 : 80;
       }
 
       const key =
-        type === "scout" ? "enemy_scout" : type === "fighter" ? "enemy_fighter" : "enemy_heavy";
+        type === "scout"
+          ? "enemy_scout"
+          : type === "fighter"
+            ? "enemy_fighter"
+            : type === "doomstar"
+              ? "enemy_doomstar"
+              : "enemy_heavy";
       const e = this.enemies.create(x, y, key);
       e.setDepth(3);
       e._type = type;
-      e._nextShot = this.time.now + Phaser.Math.Between(600, 1600);
+      e._nextShot = this.time.now + Phaser.Math.Between(500, 1400);
 
       if (type === "scout") {
         e._hp = 25;
@@ -2074,6 +2837,21 @@
         e._shotSpeed = 250;
         e._shotDmg = 10;
         e.body.setSize(24, 16);
+      } else if (type === "doomstar") {
+        // Stronger than Heavy — dual wing weapons that swap from time to time
+        e._hp = 320;
+        e._score = SCORE.doomstar;
+        e._speed = 48 * diff.moveScale;
+        e._radius = 28;
+        e._fireEvery = 720 * diff.fireRateScale;
+        e._shotSpeed = 230;
+        e._shotDmg = 14;
+        e._doomstar = true;
+        e._weaponMode = "cannons";
+        e._weaponShotsLeft = Phaser.Math.Between(3, 5);
+        e.body.setSize(56, 48);
+        this.cameras.main.flash(100, 180, 40, 60);
+        SFX.enemyLaser();
       } else {
         e._hp = 160;
         e._score = SCORE.heavy;
@@ -2087,6 +2865,141 @@
       }
     }
 
+    /** Pick next Doomstar weapon from time to time (not every shot). */
+    cycleDoomstarWeapon(enemy) {
+      enemy._weaponShotsLeft -= 1;
+      if (enemy._weaponShotsLeft > 0) return;
+      const modes = ["cannons", "lasers", "missiles"];
+      const others = modes.filter((m) => m !== enemy._weaponMode);
+      enemy._weaponMode = others[Phaser.Math.Between(0, others.length - 1)];
+      enemy._weaponShotsLeft = Phaser.Math.Between(3, 5);
+      // Brief flash so the weapon swap is readable
+      if (enemy._weaponMode === "missiles") {
+        enemy.setTint(0xffaa66);
+        this.spawnBurst(enemy.x, enemy.y, 0xff6622, 8);
+      } else if (enemy._weaponMode === "lasers") {
+        enemy.setTint(0x66ccff);
+        this.spawnBurst(enemy.x, enemy.y, 0x44aaff, 8);
+      } else {
+        enemy.setTint(0xff6688);
+        this.spawnBurst(enemy.x, enemy.y, 0xff2244, 8);
+      }
+      this.time.delayedCall(220, () => {
+        if (enemy.active) enemy.clearTint();
+      });
+      SFX.superCharge();
+    }
+
+    doomstarGunOffsets(enemy) {
+      const angle = Phaser.Math.Angle.Between(enemy.x, enemy.y, this.player.x, this.player.y);
+      const side = 18;
+      const px = Math.cos(angle + Math.PI / 2) * side;
+      const py = Math.sin(angle + Math.PI / 2) * side;
+      const fwd = 10;
+      const fx = Math.cos(angle) * fwd;
+      const fy = Math.sin(angle) * fwd;
+      return { angle, left: { x: fx + px, y: fy + py }, right: { x: fx - px, y: fy - py } };
+    }
+
+    /** Doomstar attack — dual guns, weapon type swaps periodically. */
+    fireDoomstarVolley(enemy) {
+      if (!enemy.active) return;
+      this.cycleDoomstarWeapon(enemy);
+      const guns = this.doomstarGunOffsets(enemy);
+      const mode = enemy._weaponMode || "cannons";
+
+      if (mode === "missiles") {
+        // Twin homing missiles — slower, harder hitting
+        this.fireEnemyProjectile(
+          enemy,
+          155,
+          "doomstar_missile",
+          20,
+          guns.left.x,
+          guns.left.y,
+          { homing: true, homingTurn: 0.045, lifeMs: 3200, silent: true }
+        );
+        this.fireEnemyProjectile(
+          enemy,
+          155,
+          "doomstar_missile",
+          20,
+          guns.right.x,
+          guns.right.y,
+          { homing: true, homingTurn: 0.045, lifeMs: 3200, silent: true }
+        );
+        SFX.explode();
+        return;
+      }
+
+      if (mode === "lasers") {
+        // Twin cyan laser streams — faster, lighter hits
+        const mk = (ox, oy, silent) =>
+          this.fireEnemyProjectile(enemy, 300, "doomstar_laser", 9, ox, oy, {
+            silent,
+            lifeMs: 1800,
+          });
+        mk(guns.left.x, guns.left.y, false);
+        mk(guns.right.x, guns.right.y, true);
+        this.time.delayedCall(90, () => {
+          if (!enemy.active) return;
+          const g2 = this.doomstarGunOffsets(enemy);
+          mk(g2.left.x, g2.left.y, true);
+          mk(g2.right.x, g2.right.y, true);
+        });
+        this.time.delayedCall(180, () => {
+          if (!enemy.active) return;
+          const g3 = this.doomstarGunOffsets(enemy);
+          mk(g3.left.x, g3.left.y, true);
+          mk(g3.right.x, g3.right.y, true);
+        });
+        return;
+      }
+
+      // Default: dual crimson cannons (staggered double volley)
+      this.fireEnemyProjectile(
+        enemy,
+        enemy._shotSpeed,
+        "doomstar_shot",
+        enemy._shotDmg,
+        guns.left.x,
+        guns.left.y,
+        { silent: true }
+      );
+      this.fireEnemyProjectile(
+        enemy,
+        enemy._shotSpeed,
+        "doomstar_shot",
+        enemy._shotDmg,
+        guns.right.x,
+        guns.right.y,
+        { silent: true }
+      );
+      this.time.delayedCall(110, () => {
+        if (!enemy.active) return;
+        const g2 = this.doomstarGunOffsets(enemy);
+        this.fireEnemyProjectile(
+          enemy,
+          enemy._shotSpeed,
+          "doomstar_shot",
+          enemy._shotDmg,
+          g2.left.x,
+          g2.left.y,
+          { silent: true }
+        );
+        this.fireEnemyProjectile(
+          enemy,
+          enemy._shotSpeed,
+          "doomstar_shot",
+          enemy._shotDmg,
+          g2.right.x,
+          g2.right.y,
+          { silent: true }
+        );
+      });
+      SFX.enemyLaser();
+    }
+
     updateEnemies(dt) {
       this.enemies.getChildren().forEach((e) => {
         if (!e.active) return;
@@ -2098,12 +3011,13 @@
           // Flank: add lateral sine
           vx += Math.cos(angle + Math.PI / 2) * Math.sin(this.time.now / 300) * 80;
           vy += Math.sin(angle + Math.PI / 2) * Math.sin(this.time.now / 300) * 80;
-        } else if (e._type === "heavy") {
-          // Slow approach, keep distance
+        } else if (e._type === "heavy" || e._type === "doomstar") {
+          // Slow approach, keep distance (Doomstar hangs back farther)
           const dist = Phaser.Math.Distance.Between(e.x, e.y, this.player.x, this.player.y);
-          if (dist < 180) {
-            vx *= -0.3;
-            vy *= -0.3;
+          const keep = e._type === "doomstar" ? 220 : 180;
+          if (dist < keep) {
+            vx *= -0.35;
+            vy *= -0.35;
           }
         }
 
@@ -2113,7 +3027,9 @@
 
         if (this.time.now >= e._nextShot) {
           e._nextShot = this.time.now + e._fireEvery + Phaser.Math.Between(-150, 200);
-          if (e._heavy) {
+          if (e._doomstar) {
+            this.fireDoomstarVolley(e);
+          } else if (e._heavy) {
             this.fireEnemyProjectile(e, e._shotSpeed, "heavy_shot", e._shotDmg);
             this.time.delayedCall(120, () => {
               if (e.active) this.fireEnemyProjectile(e, e._shotSpeed, "heavy_shot", e._shotDmg);
@@ -2144,6 +3060,7 @@
       if (this.ended || this.pausedGame) return;
       const dt = delta / 1000;
       this.updateEnemies(dt);
+      this.updateHomingProjectiles();
 
       const t = this.survivalMs / 1000;
       const diff = this.getDifficulty(t);
@@ -2191,7 +3108,15 @@
       mode: Phaser.Scale.FIT,
       autoCenter: Phaser.Scale.CENTER_BOTH,
     },
-    scene: [BootScene, MenuScene, ControlsScene, SettingsScene, FlightScene, FightScene],
+    scene: [
+      BootScene,
+      MenuScene,
+      ControlsScene,
+      SettingsScene,
+      ShipSelectScene,
+      FlightScene,
+      FightScene,
+    ],
   };
 
   // eslint-disable-next-line no-new

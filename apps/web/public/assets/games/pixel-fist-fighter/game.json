@@ -1,0 +1,9 @@
+{
+  "title": "Pixel Fist Fighter",
+  "slug": "pixel-fist-fighter",
+  "genre": "fighting",
+  "dateAdded": "2026-10-26",
+  "shortDescription": "Pixel Fist Fighter ist ein Retro-Arcade-Kampfspiel im Pixel-Art-Stil (Phaser 3). Springe, ducke dich, blocke und lande Combos gegen eine reaktive KI in einer neonfarbenen Arena.",
+  "cover": "cover.webp",
+  "entry": "index.html"
+}
