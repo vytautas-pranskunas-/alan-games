@@ -5,8 +5,42 @@
 (() => {
   "use strict";
 
-  const W = 960;
-  const H = 540;
+  // Logical size follows the viewport aspect so Scale.FIT fills the screen
+  // (no letterbox bars). Height stays ~540 for consistent sprite scale.
+  let W = 960;
+  let H = 540;
+  let _syncingSize = false;
+
+  function readViewportLogicalSize() {
+    const wrap = document.getElementById("game-wrap");
+    const cw = Math.max(1, (wrap && wrap.clientWidth) || window.innerWidth || 960);
+    const ch = Math.max(1, (wrap && wrap.clientHeight) || window.innerHeight || 540);
+    const aspect = cw / ch;
+    let nextH = 540;
+    let nextW = Math.max(640, Math.round(nextH * aspect));
+    nextW -= nextW % 2;
+    return { width: nextW, height: nextH };
+  }
+
+  function syncViewportSize(game) {
+    if (_syncingSize) return;
+    const next = readViewportLogicalSize();
+    if (next.width === W && next.height === H) {
+      // Size unchanged — do not call setGameSize/refresh (they re-emit resize)
+      return;
+    }
+    W = next.width;
+    H = next.height;
+    if (!game || !game.scale) return;
+    _syncingSize = true;
+    try {
+      game.scale.setGameSize(W, H);
+    } finally {
+      _syncingSize = false;
+    }
+  }
+
+  syncViewportSize(null);
   const SUPER_COOLDOWN_MS = 30000;
   const MAGNETIC_COOLDOWN_MS = 60000;
   const MAGNETIC_DURATION_MS = 2000;
@@ -61,6 +95,8 @@
   const ALLY_PICKUP_RADIUS = 22;
   /** Dev test helper join at start — off for normal play. */
   const TEST_START_HELPER = false;
+  /** TEMP: force tablet sticks/buttons in desktop browser for UI preview. */
+  const FORCE_TOUCH_UI = true;
 
   const SCORE = {
     smallAsteroid: 10,
@@ -331,6 +367,11 @@
     preload() {
       this.load.image("space_bg", "space.jpeg");
       this.load.image("space_tile", "space_tile.png");
+      // Tablet touch UI art
+      this.load.image("ui_stick_base", "ui/controller-circle.png");
+      this.load.image("ui_stick_knob", "ui/controller.png");
+      this.load.image("ui_btn_laser", "ui/laser.png");
+      this.load.image("ui_btn_explosion", "ui/explosion.png");
       SPRITE_FILES.forEach((key) => {
         this.load.image(key, `sprites/game/${key}.png`);
       });
@@ -346,6 +387,18 @@
       ["space_bg", "space_tile"].forEach((key) => {
         if (this.textures.exists(key)) {
           this.textures.get(key).setFilter(Phaser.Textures.FilterMode.NEAREST);
+        }
+      });
+      // HD tablet UI — always bilinear (never nearest / pixel crunch)
+      ["ui_stick_base", "ui_stick_knob", "ui_btn_laser", "ui_btn_explosion"].forEach((key) => {
+        if (this.textures.exists(key)) {
+          const tex = this.textures.get(key);
+          tex.setFilter(Phaser.Textures.FilterMode.LINEAR);
+          // Also force GL mag/min on the underlying source image if present
+          const src = tex.getSourceImage && tex.getSourceImage();
+          if (src && src.style) {
+            src.style.imageRendering = "auto";
+          }
         }
       });
       makeTextures(this);
@@ -365,6 +418,7 @@
           repeat: -1,
         });
       }
+      syncViewportSize(this.game);
       this.scene.start("Menu");
     }
   }
@@ -892,7 +946,10 @@
       // Multi-touch for tablet sticks + blast buttons
       this.input.addPointer(3);
 
+      syncViewportSize(this.game);
       this.physics.world.setBounds(0, 0, W, H);
+      this.cameras.main.setBounds(0, 0, W, H);
+      this.cameras.main.setSize(W, H);
       this.stars = createStarfield(this);
 
       this.obstacles = this.physics.add.group();
@@ -996,6 +1053,7 @@
     }
 
     isTouchPlay() {
+      if (FORCE_TOUCH_UI) return true;
       if (typeof window === "undefined") return false;
       const ua = navigator.userAgent || "";
       // iPadOS 13+ reports as MacIntel with touch points
@@ -1010,86 +1068,51 @@
 
     setupTouchControls() {
       if (!this.isTouchPlay()) return;
-      const depth = 120;
-      const leftX = 110;
-      const rightX = W - 110;
-      const stickY = H - 100;
-      const baseR = 56;
-      const knobR = 24;
+      const root = document.getElementById("touch-ui");
+      if (!root) return;
 
-      this.touchUi = this.add.container(0, 0).setDepth(depth).setAlpha(0.88);
-      this.touchUi.setScrollFactor(0);
+      // HTML/CSS overlay — same idea as <img width="56">: full PNG, CSS display size
+      root.innerHTML = `
+        <div class="blasts">
+          <button type="button" class="blast blast--mag" data-blast="mag" aria-label="Magnetic blast"></button>
+          <button type="button" class="blast blast--super" data-blast="super" aria-label="Superlaser"></button>
+        </div>
+        <div class="stick stick--left" data-stick="move">
+          <div class="stick-base"></div>
+          <div class="stick-knob" data-knob="move"></div>
+        </div>
+        <div class="stick stick--right" data-stick="aim">
+          <div class="stick-base"></div>
+          <div class="stick-knob" data-knob="aim"></div>
+          <div class="stick-label">AIM / FIRE</div>
+        </div>
+      `;
+      root.hidden = false;
+      root.setAttribute("aria-hidden", "false");
+      this.touchUi = root;
 
-      // Left stick — move
-      const moveBase = this.add.circle(leftX, stickY, baseR, 0x122038, 0.45).setStrokeStyle(3, 0x7ec8ff, 0.7);
-      const moveKnob = this.add.circle(leftX, stickY, knobR, 0x7ec8ff, 0.55).setStrokeStyle(2, 0xffffff, 0.8);
-      const moveZone = this.add.circle(leftX, stickY, baseR + 28, 0x000000, 0.001).setInteractive();
-
-      // Right stick — aim + fire
-      const aimBase = this.add.circle(rightX, stickY, baseR, 0x201218, 0.45).setStrokeStyle(3, 0xff6688, 0.7);
-      const aimKnob = this.add.circle(rightX, stickY, knobR, 0xff6688, 0.55).setStrokeStyle(2, 0xffffff, 0.8);
-      const aimZone = this.add.circle(rightX, stickY, baseR + 28, 0x000000, 0.001).setInteractive();
-      const aimLabel = this.add
-        .text(rightX, stickY + baseR + 16, "AIM / FIRE", {
-          fontFamily: "Courier New, monospace",
-          fontSize: "10px",
-          color: "#ff99aa",
-        })
-        .setOrigin(0.5);
-
-      // Blast buttons above left stick
-      const btnY = stickY - 100;
-      const magBtn = this.add
-        .circle(leftX - 36, btnY, 28, 0x662288, 0.7)
-        .setStrokeStyle(2, 0xeeaaff, 0.95)
-        .setInteractive({ useHandCursor: true });
-      const magLbl = this.add
-        .text(leftX - 36, btnY, "MAG", {
-          fontFamily: "Courier New, monospace",
-          fontSize: "11px",
-          color: "#ffccff",
-        })
-        .setOrigin(0.5);
-      const superBtn = this.add
-        .circle(leftX + 36, btnY, 28, 0x224466, 0.7)
-        .setStrokeStyle(2, 0x88ddff, 0.95)
-        .setInteractive({ useHandCursor: true });
-      const superLbl = this.add
-        .text(leftX + 36, btnY, "LASER", {
-          fontFamily: "Courier New, monospace",
-          fontSize: "10px",
-          color: "#cceeff",
-        })
-        .setOrigin(0.5);
-
-      this.touchUi.add([
-        moveBase,
-        moveKnob,
-        moveZone,
-        aimBase,
-        aimKnob,
-        aimZone,
-        aimLabel,
-        magBtn,
-        magLbl,
-        superBtn,
-        superLbl,
-      ]);
+      const moveStick = root.querySelector('.stick[data-stick="move"]');
+      const aimStick = root.querySelector('.stick[data-stick="aim"]');
+      const moveKnob = root.querySelector('[data-knob="move"]');
+      const aimKnob = root.querySelector('[data-knob="aim"]');
+      const magBtn = root.querySelector('.blast[data-blast="mag"]');
+      const superBtn = root.querySelector('.blast[data-blast="super"]');
 
       this._touch = {
-        leftX,
-        rightX,
-        stickY,
-        baseR,
+        root,
         moveKnob,
         aimKnob,
         magBtn,
         superBtn,
+        baseR: 74,
       };
 
-      const clampKnob = (cx, cy, px, py, maxR) => {
-        let dx = px - cx;
-        let dy = py - cy;
+      const clampKnob = (stickEl, clientX, clientY, maxR) => {
+        const rect = stickEl.getBoundingClientRect();
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+        let dx = clientX - cx;
+        let dy = clientY - cy;
         const len = Math.hypot(dx, dy) || 1;
         if (len > maxR) {
           dx = (dx / len) * maxR;
@@ -1098,88 +1121,94 @@
         return { dx, dy, nx: dx / maxR, ny: dy / maxR };
       };
 
-      moveZone.on("pointerdown", (pointer) => {
-        if (this.ended || this.pausedGame) return;
-        if (this.touchMove.id != null && this.touchMove.id !== pointer.id) return;
-        this.touchUi.setAlpha(0.9);
-        this.touchMove.active = true;
-        this.touchMove.id = pointer.id;
-        const k = clampKnob(leftX, stickY, pointer.worldX, pointer.worldY, baseR);
-        moveKnob.setPosition(leftX + k.dx, stickY + k.dy);
-        this.touchMove.x = k.nx;
-        this.touchMove.y = k.ny;
-      });
+      const setKnobDom = (knobEl, dx, dy) => {
+        if (!knobEl) return;
+        knobEl.style.transform = `translate(${dx}px, ${dy}px)`;
+      };
 
-      aimZone.on("pointerdown", (pointer) => {
-        if (this.ended || this.pausedGame) return;
-        if (this.touchAim.id != null && this.touchAim.id !== pointer.id) return;
-        this.touchUi.setAlpha(0.9);
-        this.touchAim.active = true;
-        this.touchAim.firing = true;
-        this.touchAim.id = pointer.id;
-        const k = clampKnob(rightX, stickY, pointer.worldX, pointer.worldY, baseR);
-        aimKnob.setPosition(rightX + k.dx, stickY + k.dy);
-        this.touchAim.x = k.nx;
-        this.touchAim.y = k.ny;
-        if (Math.hypot(k.nx, k.ny) > 0.15) {
-          this.aimVec.x = k.nx;
-          this.aimVec.y = k.ny;
-        }
-      });
-
-      magBtn.on("pointerdown", (pointer) => {
-        pointer.event?.stopPropagation?.();
-        if (this.ended || this.pausedGame) return;
-        SFX.ensure();
-        this.tryMagneticBlast();
-      });
-      superBtn.on("pointerdown", (pointer) => {
-        pointer.event?.stopPropagation?.();
-        if (this.ended || this.pausedGame) return;
-        SFX.ensure();
-        this.trySuperlaser();
-      });
-
-      this.input.on("pointermove", (pointer) => {
-        if (this.ended || this.pausedGame) return;
-        if (this.touchMove.active && pointer.id === this.touchMove.id) {
-          const k = clampKnob(leftX, stickY, pointer.worldX, pointer.worldY, baseR);
-          moveKnob.setPosition(leftX + k.dx, stickY + k.dy);
-          this.touchMove.x = k.nx;
-          this.touchMove.y = k.ny;
-        }
-        if (this.touchAim.active && pointer.id === this.touchAim.id) {
-          const k = clampKnob(rightX, stickY, pointer.worldX, pointer.worldY, baseR);
-          aimKnob.setPosition(rightX + k.dx, stickY + k.dy);
-          this.touchAim.x = k.nx;
-          this.touchAim.y = k.ny;
-          if (Math.hypot(k.nx, k.ny) > 0.12) {
+      const bindStick = (stickEl, knobEl, kind) => {
+        if (!stickEl) return;
+        const onDown = (e) => {
+          if (this.ended || this.pausedGame) return;
+          if (e.button != null && e.button !== 0) return;
+          e.preventDefault();
+          e.stopPropagation();
+          const id = e.pointerId;
+          const state = kind === "move" ? this.touchMove : this.touchAim;
+          if (state.id != null && state.id !== id) return;
+          stickEl.setPointerCapture?.(id);
+          state.active = true;
+          state.id = id;
+          if (kind === "aim") state.firing = true;
+          const k = clampKnob(stickEl, e.clientX, e.clientY, this._touch.baseR);
+          setKnobDom(knobEl, k.dx, k.dy);
+          state.x = k.nx;
+          state.y = k.ny;
+          if (kind === "aim" && Math.hypot(k.nx, k.ny) > 0.15) {
             this.aimVec.x = k.nx;
             this.aimVec.y = k.ny;
           }
-        }
-      });
-
-      const releasePointer = (pointer) => {
-        if (pointer.id === this.touchMove.id) {
-          this.touchMove.active = false;
-          this.touchMove.id = null;
-          this.touchMove.x = 0;
-          this.touchMove.y = 0;
-          moveKnob.setPosition(leftX, stickY);
-        }
-        if (pointer.id === this.touchAim.id) {
-          this.touchAim.active = false;
-          this.touchAim.firing = false;
-          this.touchAim.id = null;
-          this.touchAim.x = 0;
-          this.touchAim.y = 0;
-          aimKnob.setPosition(rightX, stickY);
-        }
+        };
+        const onMove = (e) => {
+          if (this.ended || this.pausedGame) return;
+          const state = kind === "move" ? this.touchMove : this.touchAim;
+          if (!state.active || state.id !== e.pointerId) return;
+          e.preventDefault();
+          const k = clampKnob(stickEl, e.clientX, e.clientY, this._touch.baseR);
+          setKnobDom(knobEl, k.dx, k.dy);
+          state.x = k.nx;
+          state.y = k.ny;
+          if (kind === "aim" && Math.hypot(k.nx, k.ny) > 0.12) {
+            this.aimVec.x = k.nx;
+            this.aimVec.y = k.ny;
+          }
+        };
+        const onUp = (e) => {
+          const state = kind === "move" ? this.touchMove : this.touchAim;
+          if (state.id !== e.pointerId) return;
+          state.active = false;
+          state.id = null;
+          state.x = 0;
+          state.y = 0;
+          if (kind === "aim") state.firing = false;
+          setKnobDom(knobEl, 0, 0);
+          try {
+            stickEl.releasePointerCapture?.(e.pointerId);
+          } catch (_) {
+            /* ignore */
+          }
+        };
+        stickEl.addEventListener("pointerdown", onDown);
+        stickEl.addEventListener("pointermove", onMove);
+        stickEl.addEventListener("pointerup", onUp);
+        stickEl.addEventListener("pointercancel", onUp);
       };
-      this.input.on("pointerup", releasePointer);
-      this.input.on("pointerupoutside", releasePointer);
 
+      bindStick(moveStick, moveKnob, "move");
+      bindStick(aimStick, aimKnob, "aim");
+
+      const bindBlast = (el, fn) => {
+        if (!el) return;
+        el.addEventListener("pointerdown", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          if (this.ended || this.pausedGame) return;
+          SFX.ensure();
+          fn.call(this);
+        });
+      };
+      bindBlast(magBtn, this.tryMagneticBlast);
+      bindBlast(superBtn, this.trySuperlaser);
+
+      const hide = () => {
+        root.hidden = true;
+        root.setAttribute("aria-hidden", "true");
+        root.innerHTML = "";
+        this.touchUi = null;
+        this._touch = null;
+      };
+      this.events.once("shutdown", hide);
+      this.events.once("destroy", hide);
     }
 
     buildHud() {
@@ -1397,8 +1426,12 @@
       const now = this.time.now;
       const magReady = now >= this.magneticReadyAt && !this.magneticActive;
       const superReady = now >= this.superReadyAt && !this.superFiring;
-      this._touch.magBtn.setAlpha(magReady ? 0.85 : 0.35);
-      this._touch.superBtn.setAlpha(superReady ? 0.85 : 0.35);
+      if (this._touch.magBtn) {
+        this._touch.magBtn.classList.toggle("is-dim", !magReady);
+      }
+      if (this._touch.superBtn) {
+        this._touch.superBtn.classList.toggle("is-dim", !superReady);
+      }
     }
 
     updatePowerVisuals() {
@@ -2382,19 +2415,24 @@
       this.engineGlow.emitting = false;
       document.body.classList.add("menu-cursor");
 
-      this.pauseLayer = this.add.container(0, 0).setDepth(100);
-      const dim = this.add.rectangle(W / 2, H / 2, W, H, 0x000000, 0.65);
+      const gw = this.scale.width;
+      const gh = this.scale.height;
+      this.pauseLayer = this.add.container(0, 0).setDepth(100).setScrollFactor(0);
+      const dim = this.add
+        .rectangle(gw / 2, gh / 2, gw + 4, gh + 4, 0x000000, 0.65)
+        .setScrollFactor(0);
       const title = this.add
-        .text(W / 2, 160, "PAUSED", {
+        .text(gw / 2, Math.max(100, gh * 0.28), "PAUSED", {
           fontFamily: "Courier New, monospace",
           fontSize: "36px",
           color: "#7ec8ff",
         })
-        .setOrigin(0.5);
+        .setOrigin(0.5)
+        .setScrollFactor(0);
 
       const mk = (y, label, fn) => {
         const t = this.add
-          .text(W / 2, y, label, {
+          .text(gw / 2, y, label, {
             fontFamily: "Courier New, monospace",
             fontSize: "22px",
             color: "#e8eef8",
@@ -2402,6 +2440,7 @@
             padding: { x: 16, y: 8 },
           })
           .setOrigin(0.5)
+          .setScrollFactor(0)
           .setInteractive({ useHandCursor: true });
         t.on("pointerover", () => t.setStyle({ color: "#7ec8ff" }));
         t.on("pointerout", () => t.setStyle({ color: "#e8eef8" }));
@@ -2412,11 +2451,11 @@
       this.pauseLayer.add([
         dim,
         title,
-        mk(240, "RESUME", () => this.resumePlay()),
-        mk(300, "RESTART", () => {
+        mk(Math.min(gh - 200, gh * 0.44), "RESUME", () => this.resumePlay()),
+        mk(Math.min(gh - 140, gh * 0.56), "RESTART", () => {
           this.scene.restart({ mode: this.mode });
         }),
-        mk(360, "MAIN MENU", () => {
+        mk(Math.min(gh - 80, gh * 0.68), "MAIN MENU", () => {
           document.body.classList.add("menu-cursor");
           this.scene.start("Menu");
         }),
@@ -2472,19 +2511,24 @@
       const best = Storage.setBest(this.mode, finalScore);
       const sec = (this.survivalMs / 1000).toFixed(1);
 
-      this.gameOverLayer = this.add.container(0, 0).setDepth(110);
-      const dim = this.add.rectangle(W / 2, H / 2, W, H, 0x000000, 0.72);
+      const gw = this.scale.width;
+      const gh = this.scale.height;
+      this.gameOverLayer = this.add.container(0, 0).setDepth(110).setScrollFactor(0);
+      const dim = this.add
+        .rectangle(gw / 2, gh / 2, gw + 4, gh + 4, 0x000000, 0.78)
+        .setScrollFactor(0);
       const title = this.add
-        .text(W / 2, 120, "GAME OVER", {
+        .text(gw / 2, Math.max(80, gh * 0.22), "GAME OVER", {
           fontFamily: "Courier New, monospace",
           fontSize: "40px",
           color: "#ff6688",
         })
-        .setOrigin(0.5);
+        .setOrigin(0.5)
+        .setScrollFactor(0);
       const stats = this.add
         .text(
-          W / 2,
-          200,
+          gw / 2,
+          Math.max(150, gh * 0.36),
           `SCORE ${finalScore}\nTIME ${sec}s\nBEST ${Math.floor(best)}${
             this.mode === "fight" ? `\nKILLS ${this.kills}` : `\nDIST ${formatDistance(this.distance)}`
           }`,
@@ -2495,11 +2539,12 @@
             align: "center",
           }
         )
-        .setOrigin(0.5);
+        .setOrigin(0.5)
+        .setScrollFactor(0);
 
       const mk = (y, label, fn) => {
         const t = this.add
-          .text(W / 2, y, label, {
+          .text(gw / 2, y, label, {
             fontFamily: "Courier New, monospace",
             fontSize: "22px",
             color: "#e8eef8",
@@ -2507,6 +2552,7 @@
             padding: { x: 16, y: 8 },
           })
           .setOrigin(0.5)
+          .setScrollFactor(0)
           .setInteractive({ useHandCursor: true });
         t.on("pointerdown", fn);
         return t;
@@ -2516,8 +2562,8 @@
         dim,
         title,
         stats,
-        mk(340, "RESTART", () => this.scene.restart({ mode: this.mode })),
-        mk(400, "MAIN MENU", () => this.scene.start("Menu")),
+        mk(Math.min(gh - 140, gh * 0.62), "RESTART", () => this.scene.restart({ mode: this.mode })),
+        mk(Math.min(gh - 80, gh * 0.74), "MAIN MENU", () => this.scene.start("Menu")),
       ]);
     }
 
@@ -3114,6 +3160,9 @@
   }
 
   /* -------------------- Boot game -------------------- */
+  // Retina/HiDPI: render canvas sharper so HD stick/button art stays smooth when FIT-scaled
+  const RENDER_DPR = Math.min(typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1, 2);
+
   const config = {
     type: Phaser.AUTO,
     parent: "game",
@@ -3125,6 +3174,7 @@
     pixelArt: false,
     antialias: true,
     roundPixels: false,
+    resolution: RENDER_DPR,
     physics: {
       default: "arcade",
       arcade: {
@@ -3135,6 +3185,9 @@
     scale: {
       mode: Phaser.Scale.FIT,
       autoCenter: Phaser.Scale.CENTER_BOTH,
+      width: W,
+      height: H,
+      autoRound: false,
     },
     scene: [
       BootScene,
@@ -3147,6 +3200,32 @@
     ],
   };
 
-  // eslint-disable-next-line no-new
-  new Phaser.Game(config);
+  // Wait a frame so #game-wrap has real layout size (iframe / fullscreen)
+  const bootGame = () => {
+    syncViewportSize(null);
+    config.width = W;
+    config.height = H;
+    config.scale.width = W;
+    config.scale.height = H;
+    const game = new Phaser.Game(config);
+    const onWinResize = () => {
+      syncViewportSize(game);
+      if (game.scene.isActive("Flight") || game.scene.isActive("Fight")) {
+        const play = game.scene.getScene(game.scene.isActive("Flight") ? "Flight" : "Fight");
+        if (play && play.physics && play.physics.world) {
+          play.physics.world.setBounds(0, 0, W, H);
+          play.cameras.main.setBounds(0, 0, W, H);
+          play.cameras.main.setSize(W, H);
+        }
+      }
+    };
+    window.addEventListener("resize", onWinResize);
+    window.addEventListener("orientationchange", () => setTimeout(onWinResize, 80));
+  };
+
+  if (document.readyState === "complete") {
+    requestAnimationFrame(bootGame);
+  } else {
+    window.addEventListener("load", () => requestAnimationFrame(bootGame));
+  }
 })();

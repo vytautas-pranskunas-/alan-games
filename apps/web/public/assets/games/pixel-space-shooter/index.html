@@ -7,19 +7,21 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <title>Pixel Space Shooter</title>
   <!-- Engine: Phaser 3 (Arcade Physics) — see repo rule game-engine-selection -->
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="style.css?v=touch2" />
 </head>
 <body>
   <div id="game-wrap">
     <!-- Native-res seamless space tile (mirror-paired — CSS repeat, no scale) -->
     <div id="space-bg" aria-hidden="true"></div>
     <div id="game"></div>
+    <!-- HD touch controls: HTML/CSS (like web imgs) — not drawn on Phaser canvas -->
+    <div id="touch-ui" hidden aria-hidden="true"></div>
     <div id="rotate-hint" aria-live="polite">
       <strong>Rotate your phone</strong>
       <span>Play in landscape for full screen</span>
     </div>
   </div>
   <script src="phaser.min.js"></script>
-  <script src="game.js?v=sprites22"></script>
+  <script src="game.js?v=sprites35"></script>
 </body>
 </html>

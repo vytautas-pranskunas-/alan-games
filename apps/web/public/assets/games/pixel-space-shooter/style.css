@@ -53,19 +53,132 @@ body {
 #game {
   position: relative;
   z-index: 1;
+  width: 100%;
+  height: 100%;
 }
 
 #game,
 #game canvas {
   display: block;
-  /* Smooth filtering so sprite-map art keeps soft edges */
+  /* Smooth filtering — never crisp-edges (that makes HD sticks look pixel-art) */
   image-rendering: auto;
+  image-rendering: smooth;
+  -ms-interpolation-mode: bicubic;
 }
 
 #game canvas {
-  max-width: 100vw;
-  max-height: 100dvh;
+  /* Phaser Scale.FIT sets pixel size; keep max open so letterbox isn't forced */
+  max-width: none;
+  max-height: none;
   background: transparent !important;
+}
+
+/*
+ * Tablet sticks/buttons as real HTML images (CSS size).
+ * Browser samples the full PNG into the screen buffer — no canvas FIT upscale mush.
+ */
+#touch-ui {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+}
+
+#touch-ui[hidden] {
+  display: none !important;
+}
+
+#touch-ui .stick {
+  position: absolute;
+  width: 176px;
+  height: 176px;
+  pointer-events: auto;
+  touch-action: none;
+}
+
+#touch-ui .stick--left {
+  left: max(12px, env(safe-area-inset-left));
+  bottom: max(16px, env(safe-area-inset-bottom));
+}
+
+#touch-ui .stick--right {
+  right: max(12px, env(safe-area-inset-right));
+  bottom: max(16px, env(safe-area-inset-bottom));
+}
+
+#touch-ui .stick-base,
+#touch-ui .stick-knob,
+#touch-ui .blast {
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  image-rendering: auto;
+}
+
+#touch-ui .stick-base {
+  position: absolute;
+  inset: 0;
+  background-image: url("ui/controller-circle.png");
+  opacity: 0.92;
+  pointer-events: none;
+}
+
+#touch-ui .stick-knob {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 80px;
+  height: 80px;
+  margin: -40px 0 0 -40px;
+  background-image: url("ui/controller.png");
+  opacity: 0.96;
+  pointer-events: none;
+  will-change: transform;
+}
+
+#touch-ui .stick-label {
+  position: absolute;
+  left: 50%;
+  bottom: -18px;
+  transform: translateX(-50%);
+  font-family: "Courier New", monospace;
+  font-size: 10px;
+  color: #88c8ff;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+#touch-ui .blasts {
+  position: absolute;
+  left: max(12px, env(safe-area-inset-left));
+  bottom: calc(max(16px, env(safe-area-inset-bottom)) + 196px);
+  display: flex;
+  gap: 18px;
+  pointer-events: auto;
+  touch-action: none;
+}
+
+#touch-ui .blast {
+  width: 72px;
+  height: 72px;
+  border: 0;
+  padding: 0;
+  background-color: transparent;
+  cursor: pointer;
+  opacity: 0.85;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#touch-ui .blast--mag {
+  background-image: url("ui/explosion.png");
+}
+
+#touch-ui .blast--super {
+  background-image: url("ui/laser.png");
+}
+
+#touch-ui .blast.is-dim {
+  opacity: 0.35;
 }
 
 /* Portrait phones: game is too short — ask to rotate */
