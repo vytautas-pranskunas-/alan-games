@@ -1,0 +1,128 @@
+{
+  "player": {
+    "file": "player.png"
+  },
+  "player_thrust": {
+    "file": "player_thrust.png"
+  },
+  "player_bank_l": {
+    "file": "player_bank_l.png"
+  },
+  "player_bank_r": {
+    "file": "player_bank_r.png"
+  },
+  "player_dread": {
+    "file": "player_dread.png"
+  },
+  "ally_drone": {
+    "file": "ally_drone.png"
+  },
+  "ally_drone_thrust": {
+    "file": "ally_drone_thrust.png"
+  },
+  "ally_drone_fire": {
+    "file": "ally_drone_fire.png"
+  },
+  "pickup_ally": {
+    "file": "pickup_ally.png"
+  },
+  "enemy_scout": {
+    "file": "enemy_scout.png"
+  },
+  "enemy_fighter": {
+    "file": "enemy_fighter.png"
+  },
+  "enemy_heavy": {
+    "file": "enemy_heavy.png"
+  },
+  "enemy_heavy_2": {
+    "file": "enemy_heavy_2.png"
+  },
+  "enemy_heavy_3": {
+    "file": "enemy_heavy_3.png"
+  },
+  "enemy_heavy_4": {
+    "file": "enemy_heavy_4.png"
+  },
+  "enemy_doomstar": {
+    "file": "enemy_doomstar.png"
+  },
+  "planet_s": {
+    "file": "planet_s.png"
+  },
+  "planet_l": {
+    "file": "planet_l.png"
+  },
+  "planet_indestruct": {
+    "file": "planet_indestruct.png"
+  },
+  "asteroid_s": {
+    "file": "asteroid_s.png"
+  },
+  "asteroid_l": {
+    "file": "asteroid_l.png"
+  },
+  "laser": {
+    "file": "laser.png"
+  },
+  "dread_shot": {
+    "file": "dread_shot.png"
+  },
+  "enemy_laser": {
+    "file": "enemy_laser.png"
+  },
+  "heavy_shot": {
+    "file": "heavy_shot.png"
+  },
+  "doomstar_shot": {
+    "file": "doomstar_shot.png"
+  },
+  "doomstar_laser": {
+    "file": "doomstar_laser.png"
+  },
+  "doomstar_missile": {
+    "file": "doomstar_missile.png"
+  },
+  "fuel": {
+    "file": "fuel.png"
+  },
+  "pickup_shield": {
+    "file": "pickup_shield.png"
+  },
+  "pickup_triple": {
+    "file": "pickup_triple.png"
+  },
+  "pickup_super": {
+    "file": "pickup_super.png"
+  },
+  "pickup_magnetic": {
+    "file": "pickup_magnetic.png"
+  },
+  "fx_explode_sm": {
+    "file": "fx_explode_sm.png"
+  },
+  "fx_explode_md": {
+    "file": "fx_explode_md.png"
+  },
+  "fx_explode_lg": {
+    "file": "fx_explode_lg.png"
+  },
+  "fx_hit": {
+    "file": "fx_hit.png"
+  },
+  "fx_shield": {
+    "file": "fx_shield.png"
+  },
+  "fx_magnetic": {
+    "file": "fx_magnetic.png"
+  },
+  "fx_superbeam": {
+    "file": "fx_superbeam.png"
+  },
+  "crosshair": {
+    "file": "crosshair.png"
+  },
+  "px": {
+    "file": "px.png"
+  }
+}

@@ -208,7 +208,102 @@
     },
   };
 
-  /* -------------------- Procedural textures -------------------- */
+  /** Display heights so atlas crops fit the 960×540 playfield. */
+  const SPRITE_H = {
+    player: 36,
+    player_dread: 56,
+    ally_drone: 22,
+    enemy_scout: 28,
+    enemy_fighter: 34,
+    enemy_heavy: 42,
+    enemy_heavy_2: 42,
+    enemy_heavy_3: 42,
+    enemy_heavy_4: 42,
+    enemy_doomstar: 78,
+    // Keep near native crop size — upscaling planet art looks soft/blurry
+    planet_s: 28,
+    planet_l: 40,
+    planet_indestruct: 46,
+    asteroid_s: 18,
+    asteroid_l: 34,
+    laser: 28,
+    laser_tip: 18,
+    superbeam_tip: 36,
+    superbeam_body: 24,
+    fx_superbeam: 120,
+    dread_shot: 8,
+    fx_shield: 52,
+    enemy_laser: 16,
+    heavy_shot: 20,
+    doomstar_shot: 24,
+    doomstar_laser: 28,
+    doomstar_missile: 26,
+    fuel: 22,
+    pickup_shield: 24,
+    pickup_triple: 24,
+    pickup_ally: 28,
+    pickup_super: 24,
+    pickup_magnetic: 24,
+    crosshair: 22,
+  };
+
+  function fitSprite(sprite, key) {
+    const h = SPRITE_H[key];
+    if (!sprite || !h || !sprite.height) return sprite;
+    sprite.setScale(h / sprite.height);
+    return sprite;
+  }
+
+  const SPRITE_FILES = [
+    "player",
+    "player_thrust",
+    "player_bank_l",
+    "player_bank_r",
+    "player_dread",
+    "ally_drone",
+    "ally_drone_thrust",
+    "ally_drone_fire",
+    "pickup_ally",
+    "enemy_scout",
+    "enemy_fighter",
+    "enemy_heavy",
+    "enemy_heavy_2",
+    "enemy_heavy_3",
+    "enemy_heavy_4",
+    "enemy_doomstar",
+    "planet_s",
+    "planet_l",
+    "planet_indestruct",
+    "asteroid_s",
+    "asteroid_l",
+    "laser",
+    "dread_shot",
+    "enemy_laser",
+    "heavy_shot",
+    "doomstar_shot",
+    "doomstar_laser",
+    "doomstar_missile",
+    "fuel",
+    "pickup_shield",
+    "pickup_triple",
+    "pickup_super",
+    "pickup_magnetic",
+    "fx_explode_sm",
+    "fx_explode_md",
+    "fx_explode_lg",
+    "fx_hit",
+    "fx_shield",
+    "fx_magnetic",
+    "fx_superbeam",
+    "superbeam_tip",
+    "superbeam_body",
+    "laser_tip",
+    "laser_body",
+    "crosshair",
+    "px",
+  ];
+
+  /* -------------------- Legacy procedural fallbacks (unused if atlas loads) -------------------- */
   function drawPixels(g, pixels, ox, oy, scale) {
     const s = scale || 1;
     for (const [x, y, c] of pixels) {
@@ -218,366 +313,8 @@
   }
 
   function makeTextures(scene) {
-    // Player X-wing inspired (faces UP, fixed orientation)
-    {
-      const g = scene.make.graphics({ x: 0, y: 0, add: false });
-      const px = [
-        [7, 0, 0xe8eef8], [8, 0, 0xe8eef8],
-        [6, 1, 0xd0d8e8], [7, 1, 0x3a7ad9], [8, 1, 0x3a7ad9], [9, 1, 0xd0d8e8],
-        [6, 2, 0xe8eef8], [7, 2, 0x1a2a44], [8, 2, 0x1a2a44], [9, 2, 0xe8eef8],
-        [5, 3, 0xc43c3c], [6, 3, 0xe8eef8], [7, 3, 0xc8d0e0], [8, 3, 0xc8d0e0], [9, 3, 0xe8eef8], [10, 3, 0xc43c3c],
-        [2, 4, 0xc43c3c], [3, 4, 0xe8eef8], [4, 4, 0xb0b8c8], [5, 4, 0xe8eef8], [6, 4, 0xe8eef8], [7, 4, 0xe8eef8], [8, 4, 0xe8eef8], [9, 4, 0xe8eef8], [10, 4, 0xe8eef8], [11, 4, 0xb0b8c8], [12, 4, 0xe8eef8], [13, 4, 0xc43c3c],
-        [1, 5, 0x9aa8c0], [2, 5, 0xe8eef8], [3, 5, 0xe8eef8], [4, 5, 0xe8eef8], [5, 5, 0xc43c3c], [6, 5, 0xe8eef8], [7, 5, 0xd0d8e8], [8, 5, 0xd0d8e8], [9, 5, 0xe8eef8], [10, 5, 0xc43c3c], [11, 5, 0xe8eef8], [12, 5, 0xe8eef8], [13, 5, 0xe8eef8], [14, 5, 0x9aa8c0],
-        [0, 6, 0x708090], [1, 6, 0xe8eef8], [2, 6, 0xc43c3c], [6, 6, 0xe8eef8], [7, 6, 0xe8eef8], [8, 6, 0xe8eef8], [9, 6, 0xe8eef8], [13, 6, 0xc43c3c], [14, 6, 0xe8eef8], [15, 6, 0x708090],
-        [0, 7, 0x4ec4ff], [1, 7, 0x9aa8c0], [6, 7, 0xb0b8c8], [7, 7, 0xe8eef8], [8, 7, 0xe8eef8], [9, 7, 0xb0b8c8], [14, 7, 0x9aa8c0], [15, 7, 0x4ec4ff],
-        [6, 8, 0x708090], [7, 8, 0x4ec4ff], [8, 8, 0x4ec4ff], [9, 8, 0x708090],
-        [7, 9, 0xffaa33], [8, 9, 0xffaa33],
-      ];
-      drawPixels(g, px, 0, 0, 2);
-      g.generateTexture("player", 32, 22);
-      g.destroy();
-    }
-
-    // Player Dreadnought — big, slow, heavy dual cannons
-    {
-      const g = scene.make.graphics({ x: 0, y: 0, add: false });
-      g.fillStyle(0x1a2230, 1);
-      g.fillRect(8, 14, 32, 28);
-      g.fillStyle(0x2a3848, 1);
-      g.fillRect(4, 18, 40, 22);
-      g.fillStyle(0x3a4a5c, 1);
-      g.fillRect(12, 6, 24, 16);
-      g.fillStyle(0x9aa8c0, 1);
-      g.fillRect(18, 2, 12, 10);
-      g.fillStyle(0x3a7ad9, 1);
-      g.fillRect(20, 4, 8, 6);
-      // Wide wings
-      g.fillStyle(0xc43c3c, 1);
-      g.fillRect(0, 20, 10, 8);
-      g.fillRect(38, 20, 10, 8);
-      g.fillStyle(0xe8eef8, 1);
-      g.fillRect(2, 22, 6, 4);
-      g.fillRect(40, 22, 6, 4);
-      // Dual heavy cannons
-      g.fillStyle(0xffaa33, 1);
-      g.fillRect(6, 8, 5, 14);
-      g.fillRect(37, 8, 5, 14);
-      g.fillStyle(0xffee88, 1);
-      g.fillRect(7, 6, 3, 4);
-      g.fillRect(38, 6, 3, 4);
-      // Engines
-      g.fillStyle(0x4ec4ff, 1);
-      g.fillRect(14, 40, 6, 8);
-      g.fillRect(28, 40, 6, 8);
-      g.fillStyle(0xffaa33, 1);
-      g.fillRect(16, 44, 2, 4);
-      g.fillRect(30, 44, 2, 4);
-      g.generateTexture("player_dread", 48, 48);
-      g.destroy();
-    }
-
-    // Scout (TIE-ish small)
-    {
-      const g = scene.make.graphics({ x: 0, y: 0, add: false });
-      const px = [
-        [0, 2, 0x22222a], [0, 3, 0x33333c], [0, 4, 0x22222a],
-        [1, 1, 0x2a2a32], [1, 2, 0x3a3a44], [1, 3, 0x3a3a44], [1, 4, 0x3a3a44], [1, 5, 0x2a2a32],
-        [2, 0, 0x1a1a22], [2, 1, 0x2a2a32], [2, 2, 0x44444e], [2, 3, 0xc43c3c], [2, 4, 0x44444e], [2, 5, 0x2a2a32], [2, 6, 0x1a1a22],
-        [3, 2, 0x2a2a32], [3, 3, 0x55555e], [3, 4, 0x2a2a32],
-        [4, 0, 0x1a1a22], [4, 1, 0x2a2a32], [4, 2, 0x44444e], [4, 3, 0xc43c3c], [4, 4, 0x44444e], [4, 5, 0x2a2a32], [4, 6, 0x1a1a22],
-        [5, 1, 0x2a2a32], [5, 2, 0x3a3a44], [5, 3, 0x3a3a44], [5, 4, 0x3a3a44], [5, 5, 0x2a2a32],
-        [6, 2, 0x22222a], [6, 3, 0x33333c], [6, 4, 0x22222a],
-      ];
-      drawPixels(g, px, 0, 0, 3);
-      g.generateTexture("enemy_scout", 21, 21);
-      g.destroy();
-    }
-
-    // Standard fighter
-    {
-      const g = scene.make.graphics({ x: 0, y: 0, add: false });
-      const px = [
-        [4, 0, 0x2a2a32], [5, 0, 0x3a3a44], [6, 0, 0x2a2a32],
-        [3, 1, 0x22222a], [4, 1, 0x44444e], [5, 1, 0xc43c3c], [6, 1, 0x44444e], [7, 1, 0x22222a],
-        [1, 2, 0x1a1a22], [2, 2, 0x2a2a32], [3, 2, 0x3a3a44], [4, 2, 0x55555e], [5, 2, 0x888], [6, 2, 0x55555e], [7, 2, 0x3a3a44], [8, 2, 0x2a2a32], [9, 2, 0x1a1a22],
-        [0, 3, 0x22222a], [1, 3, 0x3a3a44], [2, 3, 0x44444e], [4, 3, 0x3a3a44], [5, 3, 0xc43c3c], [6, 3, 0x3a3a44], [8, 3, 0x44444e], [9, 3, 0x3a3a44], [10, 3, 0x22222a],
-        [0, 4, 0x1a1a22], [1, 4, 0x2a2a32], [2, 4, 0x3a3a44], [4, 4, 0x2a2a32], [5, 4, 0x44444e], [6, 4, 0x2a2a32], [8, 4, 0x3a3a44], [9, 4, 0x2a2a32], [10, 4, 0x1a1a22],
-        [2, 5, 0x22222a], [5, 5, 0x4ec4ff], [8, 5, 0x22222a],
-      ];
-      drawPixels(g, px, 0, 0, 3);
-      g.generateTexture("enemy_fighter", 33, 18);
-      g.destroy();
-    }
-
-    // Heavy ship
-    {
-      const g = scene.make.graphics({ x: 0, y: 0, add: false });
-      g.fillStyle(0x1a1a22, 1);
-      g.fillRect(0, 8, 48, 20);
-      g.fillStyle(0x2a2a32, 1);
-      g.fillRect(4, 4, 40, 28);
-      g.fillStyle(0x3a3a44, 1);
-      g.fillRect(10, 0, 28, 10);
-      g.fillStyle(0xc43c3c, 1);
-      g.fillRect(20, 6, 8, 8);
-      g.fillRect(6, 14, 4, 4);
-      g.fillRect(38, 14, 4, 4);
-      g.fillStyle(0x55555e, 1);
-      g.fillRect(14, 18, 20, 10);
-      g.fillStyle(0x4ec4ff, 1);
-      g.fillRect(18, 30, 4, 6);
-      g.fillRect(26, 30, 4, 6);
-      g.generateTexture("enemy_heavy", 48, 36);
-      g.destroy();
-    }
-
-    // Asteroids
-    for (const [key, size, color] of [
-      ["asteroid_s", 16, 0x8a7a6a],
-      ["asteroid_l", 36, 0x6a5a4a],
-    ]) {
-      const g = scene.make.graphics({ x: 0, y: 0, add: false });
-      g.fillStyle(color, 1);
-      g.fillCircle(size / 2, size / 2, size / 2 - 1);
-      g.fillStyle(0x4a4038, 1);
-      g.fillCircle(size * 0.35, size * 0.4, size * 0.15);
-      g.fillCircle(size * 0.65, size * 0.55, size * 0.12);
-      g.fillStyle(0xa89888, 1);
-      g.fillCircle(size * 0.55, size * 0.3, size * 0.1);
-      g.generateTexture(key, size, size);
-      g.destroy();
-    }
-
-    // Planets (kept modest so they never fill the playfield)
-    for (const [key, size, c1, c2] of [
-      ["planet_s", 32, 0x3a6a9a, 0x2a4a7a],
-      ["planet_l", 48, 0x6a3a5a, 0x4a2a3a],
-      ["planet_indestruct", 56, 0x2a8a6a, 0x1a5a4a],
-    ]) {
-      const g = scene.make.graphics({ x: 0, y: 0, add: false });
-      g.fillStyle(c1, 1);
-      g.fillCircle(size / 2, size / 2, size / 2 - 2);
-      g.fillStyle(c2, 1);
-      g.fillCircle(size * 0.38, size * 0.4, size * 0.22);
-      g.fillStyle(0xffffff, 0.15);
-      g.fillCircle(size * 0.62, size * 0.32, size * 0.12);
-      g.generateTexture(key, size, size);
-      g.destroy();
-    }
-
-    // Projectiles
-    {
-      const g = scene.make.graphics({ x: 0, y: 0, add: false });
-      g.fillStyle(0x44ff88, 1);
-      g.fillRect(0, 0, 4, 10);
-      g.fillStyle(0xccffee, 1);
-      g.fillRect(1, 1, 2, 8);
-      g.generateTexture("laser", 4, 10);
-      g.destroy();
-    }
-    {
-      const g = scene.make.graphics({ x: 0, y: 0, add: false });
-      g.fillStyle(0xff3344, 1);
-      g.fillRect(0, 0, 4, 10);
-      g.fillStyle(0xffaaaa, 1);
-      g.fillRect(1, 1, 2, 8);
-      g.generateTexture("enemy_laser", 4, 10);
-      g.destroy();
-    }
-    {
-      const g = scene.make.graphics({ x: 0, y: 0, add: false });
-      g.fillStyle(0xffaa00, 1);
-      g.fillCircle(6, 6, 6);
-      g.fillStyle(0xffee88, 1);
-      g.fillCircle(6, 6, 3);
-      g.generateTexture("heavy_shot", 12, 12);
-      g.destroy();
-    }
-
-    // Fuel tank (HP pickup)
-    {
-      const g = scene.make.graphics({ x: 0, y: 0, add: false });
-      g.fillStyle(0x2a2a32, 1);
-      g.fillRect(2, 1, 12, 18);
-      g.fillStyle(0x44cc66, 1);
-      g.fillRect(4, 4, 8, 12);
-      g.fillStyle(0x88ffaa, 1);
-      g.fillRect(5, 5, 3, 5);
-      g.fillStyle(0xc43c3c, 1);
-      g.fillRect(6, 0, 4, 3);
-      g.fillStyle(0xffee88, 1);
-      g.fillCircle(8, 10, 2);
-      g.generateTexture("fuel", 16, 20);
-      g.destroy();
-    }
-
-    // Shield pickup
-    {
-      const g = scene.make.graphics({ x: 0, y: 0, add: false });
-      g.lineStyle(2, 0x66ccff, 1);
-      g.strokeCircle(10, 10, 8);
-      g.lineStyle(2, 0xaaddff, 1);
-      g.strokeCircle(10, 10, 5);
-      g.fillStyle(0x88ddff, 0.5);
-      g.fillCircle(10, 10, 3);
-      g.generateTexture("pickup_shield", 20, 20);
-      g.destroy();
-    }
-
-    // Triple-gun / autocannon pickup
-    {
-      const g = scene.make.graphics({ x: 0, y: 0, add: false });
-      g.fillStyle(0x3a3a44, 1);
-      g.fillRect(2, 4, 16, 12);
-      g.fillStyle(0xffaa33, 1);
-      g.fillRect(4, 2, 3, 16);
-      g.fillRect(9, 0, 3, 18);
-      g.fillRect(14, 2, 3, 16);
-      g.fillStyle(0xffee88, 1);
-      g.fillRect(5, 1, 1, 3);
-      g.fillRect(10, 0, 1, 3);
-      g.fillRect(15, 1, 1, 3);
-      g.generateTexture("pickup_triple", 20, 20);
-      g.destroy();
-    }
-
-    // Tiny ally wingman (pickup + attached drone)
-    {
-      const g = scene.make.graphics({ x: 0, y: 0, add: false });
-      const px = [
-        [3, 0, 0xaae8ff], [4, 0, 0xaae8ff],
-        [2, 1, 0x66ccee], [3, 1, 0xe8f8ff], [4, 1, 0xe8f8ff], [5, 1, 0x66ccee],
-        [1, 2, 0x44aadd], [2, 2, 0x88ddff], [3, 2, 0x2a88cc], [4, 2, 0x2a88cc], [5, 2, 0x88ddff], [6, 2, 0x44aadd],
-        [0, 3, 0x3388bb], [1, 3, 0x66ccee], [2, 3, 0xaae8ff], [3, 3, 0xe8f8ff], [4, 3, 0xe8f8ff], [5, 3, 0xaae8ff], [6, 3, 0x66ccee], [7, 3, 0x3388bb],
-        [2, 4, 0x44aadd], [3, 4, 0x66ffaa], [4, 4, 0x66ffaa], [5, 4, 0x44aadd],
-        [3, 5, 0xffcc66], [4, 5, 0xffcc66],
-      ];
-      drawPixels(g, px, 0, 0, 2);
-      g.generateTexture("ally_drone", 16, 12);
-      g.destroy();
-    }
-
-    // Doomstar — late-game boss enemy (bigger than heavy, dual wing cannons)
-    {
-      const g = scene.make.graphics({ x: 0, y: 0, add: false });
-      // Hull
-      g.fillStyle(0x120810, 1);
-      g.fillRect(8, 18, 48, 28);
-      g.fillStyle(0x2a1018, 1);
-      g.fillRect(14, 10, 36, 40);
-      g.fillStyle(0x3a1822, 1);
-      g.fillRect(20, 4, 24, 14);
-      // Command bridge
-      g.fillStyle(0x1a0a10, 1);
-      g.fillRect(26, 0, 12, 10);
-      g.fillStyle(0xff2244, 1);
-      g.fillRect(28, 2, 8, 5);
-      g.fillStyle(0xff88aa, 1);
-      g.fillRect(30, 3, 4, 2);
-      // Twin wing pylons
-      g.fillStyle(0x441018, 1);
-      g.fillRect(0, 16, 16, 10);
-      g.fillRect(48, 16, 16, 10);
-      g.fillStyle(0x661122, 1);
-      g.fillRect(2, 14, 12, 14);
-      g.fillRect(50, 14, 12, 14);
-      // Dual cannons (glowing)
-      g.fillStyle(0xff4466, 1);
-      g.fillRect(4, 8, 6, 12);
-      g.fillRect(54, 8, 6, 12);
-      g.fillStyle(0xffccdd, 1);
-      g.fillRect(5, 6, 4, 4);
-      g.fillRect(55, 6, 4, 4);
-      g.fillStyle(0xffee88, 1);
-      g.fillRect(6, 4, 2, 3);
-      g.fillRect(56, 4, 2, 3);
-      // Armor plates + vents
-      g.fillStyle(0x552030, 1);
-      g.fillRect(18, 22, 28, 16);
-      g.fillStyle(0xc43c3c, 1);
-      g.fillRect(22, 26, 6, 6);
-      g.fillRect(36, 26, 6, 6);
-      g.fillStyle(0x4ec4ff, 1);
-      g.fillRect(28, 28, 8, 4);
-      // Engines
-      g.fillStyle(0xff6622, 1);
-      g.fillRect(18, 44, 8, 8);
-      g.fillRect(38, 44, 8, 8);
-      g.fillStyle(0xffcc44, 1);
-      g.fillRect(20, 48, 4, 6);
-      g.fillRect(40, 48, 4, 6);
-      g.fillStyle(0xffeecc, 1);
-      g.fillRect(21, 50, 2, 4);
-      g.fillRect(41, 50, 2, 4);
-      // Dorsal fin
-      g.fillStyle(0x881122, 1);
-      g.fillRect(30, 12, 4, 12);
-      g.fillRect(28, 16, 8, 6);
-      g.generateTexture("enemy_doomstar", 64, 56);
-      g.destroy();
-    }
-
-    // Doomstar cannon bolt (fatter crimson shot)
-    {
-      const g = scene.make.graphics({ x: 0, y: 0, add: false });
-      g.fillStyle(0xff2244, 1);
-      g.fillRect(2, 0, 6, 14);
-      g.fillStyle(0xff8899, 1);
-      g.fillRect(3, 1, 4, 10);
-      g.fillStyle(0xffeef2, 1);
-      g.fillRect(4, 2, 2, 6);
-      g.generateTexture("doomstar_shot", 10, 14);
-      g.destroy();
-    }
-
-    // Doomstar twin lasers (cyan beams — alternate weapon)
-    {
-      const g = scene.make.graphics({ x: 0, y: 0, add: false });
-      g.fillStyle(0x2288ff, 1);
-      g.fillRect(1, 0, 4, 16);
-      g.fillStyle(0x88ddff, 1);
-      g.fillRect(2, 1, 2, 14);
-      g.fillStyle(0xe8f8ff, 1);
-      g.fillRect(2, 2, 2, 6);
-      g.generateTexture("doomstar_laser", 6, 16);
-      g.destroy();
-    }
-
-    // Doomstar missile (orange — alternate weapon)
-    {
-      const g = scene.make.graphics({ x: 0, y: 0, add: false });
-      g.fillStyle(0x888890, 1);
-      g.fillRect(3, 2, 6, 14);
-      g.fillStyle(0xff6622, 1);
-      g.fillRect(4, 0, 4, 6);
-      g.fillStyle(0xffcc44, 1);
-      g.fillRect(5, 1, 2, 3);
-      g.fillStyle(0xff4466, 1);
-      g.fillRect(4, 14, 2, 4);
-      g.fillRect(6, 14, 2, 4);
-      g.fillStyle(0xffaa33, 1);
-      g.fillRect(5, 16, 2, 3);
-      g.generateTexture("doomstar_missile", 12, 20);
-      g.destroy();
-    }
-
-    // Crosshair
-    {
-      const g = scene.make.graphics({ x: 0, y: 0, add: false });
-      g.lineStyle(2, 0x7ec8ff, 1);
-      g.strokeCircle(8, 8, 7);
-      g.lineBetween(8, 0, 8, 4);
-      g.lineBetween(8, 12, 8, 16);
-      g.lineBetween(0, 8, 4, 8);
-      g.lineBetween(12, 8, 16, 8);
-      g.fillStyle(0xff4466, 1);
-      g.fillRect(7, 7, 2, 2);
-      g.generateTexture("crosshair", 16, 16);
-      g.destroy();
-    }
-
-    // Particle
-    {
+    // Tiny particle (crosshair comes from sprites/game/crosshair.png)
+    if (!scene.textures.exists("px")) {
       const g = scene.make.graphics({ x: 0, y: 0, add: false });
       g.fillStyle(0xffffff, 1);
       g.fillRect(0, 0, 3, 3);
@@ -591,18 +328,73 @@
     constructor() {
       super("Boot");
     }
+    preload() {
+      this.load.image("space_bg", "space.jpeg");
+      this.load.image("space_tile", "space_tile.png");
+      SPRITE_FILES.forEach((key) => {
+        this.load.image(key, `sprites/game/${key}.png`);
+      });
+    }
     create() {
+      // Soft filtering so sprite-map art keeps smooth edges (not hard pixel blocks)
+      SPRITE_FILES.forEach((key) => {
+        if (this.textures.exists(key)) {
+          this.textures.get(key).setFilter(Phaser.Textures.FilterMode.LINEAR);
+        }
+      });
+      // Space tiles stay 1:1 and crisp (feathered PNG hides seams)
+      ["space_bg", "space_tile"].forEach((key) => {
+        if (this.textures.exists(key)) {
+          this.textures.get(key).setFilter(Phaser.Textures.FilterMode.NEAREST);
+        }
+      });
       makeTextures(this);
+      if (this.textures.exists("player") && this.textures.exists("player_thrust")) {
+        this.anims.create({
+          key: "player_fly",
+          frames: [{ key: "player" }, { key: "player_thrust" }],
+          frameRate: 8,
+          repeat: -1,
+        });
+      }
+      if (this.textures.exists("ally_drone") && this.textures.exists("ally_drone_thrust")) {
+        this.anims.create({
+          key: "ally_fly",
+          frames: [{ key: "ally_drone" }, { key: "ally_drone_thrust" }],
+          frameRate: 10,
+          repeat: -1,
+        });
+      }
       this.scene.start("Menu");
     }
   }
 
-  /* -------------------- Starfield helper -------------------- */
+  /* -------------------- Far space background + near starfield -------------------- */
+  /**
+   * Far space outside Phaser (avoids Scale.FIT blur).
+   * CSS-repeats a mirror-seamless native tile (1168×2312) — edges match exactly.
+   */
+  function createSpaceBackground(_scene) {
+    const el =
+      typeof document !== "undefined" ? document.getElementById("space-bg") : null;
+    const FAR_SPEED = 4;
+    let scroll = 0;
+    return {
+      update(dt, scrollY) {
+        if (!el) return;
+        const sy = scrollY != null ? scrollY : 1;
+        scroll += FAR_SPEED * sy * dt;
+        el.style.backgroundPosition = `0 ${-scroll}px`;
+      },
+    };
+  }
+
   function createStarfield(scene) {
+    // Nearer dust layer on top of the far space plate
     const layers = [
-      { count: 80, speed: 20, size: 1, alpha: 0.5 },
-      { count: 50, speed: 45, size: 1.5, alpha: 0.75 },
-      { count: 25, speed: 90, size: 2, alpha: 1 },
+      { count: 40, speed: 18, size: 1, alpha: 0.35 },
+      { count: 28, speed: 40, size: 1.5, alpha: 0.55 },
+      { count: 14, speed: 75, size: 2, alpha: 0.75 },
     ];
     const stars = [];
     layers.forEach((layer) => {
@@ -620,8 +412,10 @@
         stars.push(s);
       }
     });
+    const space = createSpaceBackground(scene);
     return {
       update(dt, scrollY) {
+        space.update(dt, scrollY);
         const sy = scrollY != null ? scrollY : 1;
         stars.forEach((s) => {
           s.y += s._speed * sy * dt;
@@ -867,7 +661,7 @@
         "TABLET: left stick = move, right stick = aim + fire.",
         "Above left stick: MAG blast + SUPERLASER buttons.",
         "Pickups: fuel (+HP), shield (10s), triple gun (10s).",
-        "Helper ships join you (100 HP) — fight, smash planets, grab pickups.",
+        "Helper ships join you (100 HP) — shoot enemies & asteroids (not planets).",
         "FIGHT: Doomstar is a late boss enemy — dual cannons, tougher than Heavy.",
       ];
       lines.forEach((line, i) => {
@@ -1118,13 +912,26 @@
 
       this.ship = getSelectedShip();
       this.player = this.physics.add.sprite(W / 2, H - 80, this.ship.texture);
+      fitSprite(this.player, this.ship.texture === "player_dread" ? "player_dread" : "player");
       this.player.setCollideWorldBounds(true);
-      this.player.body.setSize(this.ship.bodyW, this.ship.bodyH);
+      const bw = this.ship.bodyW;
+      const bh = this.ship.bodyH;
+      this.player.body.setSize(bw, bh);
+      this.player.body.setOffset(
+        (this.player.width - bw) / 2,
+        (this.player.height - bh) / 2
+      );
       this.player.setDepth(5);
       // Fixed forward orientation — never rotate toward mouse
       this.player.setAngle(0);
+      if (this.ship.texture === "player" && this.anims.exists("player_fly")) {
+        this.player.play("player_fly");
+      }
 
-      this.crosshair = this.add.image(W / 2, H / 2, "crosshair").setDepth(50);
+      this.crosshair = fitSprite(
+        this.add.image(W / 2, H / 2, "crosshair").setDepth(50),
+        "crosshair"
+      );
       this.engineGlow = this.add.particles(0, 0, "px", {
         speed: { min: 20, max: 60 },
         angle: { min: 70, max: 110 },
@@ -1158,7 +965,14 @@
         Phaser.Input.Keyboard.KeyCodes.D,
       ]);
 
-      this.physics.add.overlap(this.playerLasers, this.obstacles, this.onLaserHitObstacle, null, this);
+      this.physics.add.overlap(
+        this.playerLasers,
+        this.obstacles,
+        this.onLaserHitObstacle,
+        // Ally lasers pass through planets (helpers only hit asteroids / enemies)
+        (laser, obs) => !(laser._fromAlly && this.isPlanetObstacle(obs)),
+        this
+      );
       this.physics.add.overlap(this.playerLasers, this.enemies, this.onLaserHitEnemy, null, this);
       this.physics.add.overlap(this.enemyLasers, this.player, this.onEnemyLaserHitPlayer, null, this);
       this.physics.add.overlap(this.player, this.obstacles, this.onPlayerHitObstacle, null, this);
@@ -1591,32 +1405,44 @@
       const now = this.time.now;
       if (now < this.shieldUntil) {
         if (!this.shieldRing || !this.shieldRing.active) {
-          const r = (this.ship && this.ship.shieldR) || 22;
-          this.shieldRing = this.add
-            .circle(this.player.x, this.player.y, r, 0x66ccff, 0)
-            .setStrokeStyle(2, 0x88ddff, 0.9)
-            .setDepth(6);
+          if (this.textures.exists("fx_shield")) {
+            this.shieldRing = this.add.image(this.player.x, this.player.y, "fx_shield").setDepth(6);
+            fitSprite(this.shieldRing, "fx_shield");
+          } else {
+            const r = (this.ship && this.ship.shieldR) || 22;
+            this.shieldRing = this.add
+              .circle(this.player.x, this.player.y, r, 0x66ccff, 0)
+              .setStrokeStyle(2, 0x88ddff, 0.9)
+              .setDepth(6);
+          }
         }
         this.shieldRing.setPosition(this.player.x, this.player.y);
         this.shieldRing.setAlpha(0.55 + Math.sin(now / 90) * 0.35);
+        if (this.shieldRing.setScale && this.textures.exists("fx_shield")) {
+          const pulse = 1 + Math.sin(now / 120) * 0.06;
+          const base = (SPRITE_H.fx_shield || 52) / Math.max(1, this.textures.get("fx_shield").getSourceImage().height);
+          this.shieldRing.setScale(base * pulse);
+        }
       } else if (this.shieldRing) {
         this.shieldRing.destroy();
         this.shieldRing = null;
       }
     }
 
-    fireLaserShot(x, y, angle, dmg, tint) {
-      const laser = this.playerLasers.get();
+    fireLaserShot(x, y, angle, dmg, tint, texKey) {
+      const key = texKey || "laser";
+      let laser = this.playerLasers.get();
       if (!laser) {
-        // Pool exhausted — spawn one more instead of failing silently
-        const extra = this.physics.add.image(x, y, "laser");
+        const extra = this.physics.add.image(x, y, key);
         this.playerLasers.add(extra);
-        return this._launchLaser(extra, x, y, angle, dmg, tint);
+        laser = extra;
+      } else if (laser.texture && laser.texture.key !== key && this.textures.exists(key)) {
+        laser.setTexture(key);
       }
-      return this._launchLaser(laser, x, y, angle, dmg, tint);
+      return this._launchLaser(laser, x, y, angle, dmg, tint, key);
     }
 
-    _launchLaser(laser, x, y, angle, dmg, tint) {
+    _launchLaser(laser, x, y, angle, dmg, tint, texKey) {
       // New shot id so an old delayedCall cannot kill a reused laser mid-flight
       laser._shotId = (laser._shotId || 0) + 1;
       const shotId = laser._shotId;
@@ -1629,6 +1455,7 @@
       laser.setRotation(angle + Math.PI / 2);
       laser._dmg = dmg || 12;
       laser._fromAlly = false;
+      fitSprite(laser, texKey || "laser");
 
       if (laser.body) {
         laser.body.enable = true;
@@ -1669,8 +1496,8 @@
         const side = 14;
         const ox = Math.cos(angle + Math.PI / 2) * side;
         const oy = Math.sin(angle + Math.PI / 2) * side;
-        this.fireLaserShot(px + ox, py + oy, angle, dmg, 0xffaa33);
-        this.fireLaserShot(px - ox, py - oy, angle, dmg, 0xffaa33);
+        this.fireLaserShot(px + ox, py + oy, angle, dmg, null, "dread_shot");
+        this.fireLaserShot(px - ox, py - oy, angle, dmg, null, "dread_shot");
       } else {
         this.fireLaserShot(px, py, angle, dmg);
       }
@@ -1693,27 +1520,47 @@
       const aim = this.aimPoint();
       const angle = Phaser.Math.Angle.Between(this.player.x, this.player.y, aim.x, aim.y);
       const dist = 900;
+      const cos = Math.cos(angle);
+      const sin = Math.sin(angle);
+      const fadeList = [];
 
-      const core = this.add
-        .rectangle(this.player.x, this.player.y, dist, 18, 0xaaddff, 0.95)
-        .setOrigin(0, 0.5)
-        .setRotation(angle)
-        .setDepth(6);
       const glow = this.add
-        .rectangle(this.player.x, this.player.y, dist, 40, 0x4488ff, 0.35)
+        .rectangle(this.player.x, this.player.y, dist, 36, 0x4488ff, 0.28)
         .setOrigin(0, 0.5)
         .setRotation(angle)
         .setDepth(5);
+      fadeList.push(glow);
 
-      // Charge flash
+      // Superlaser-Beam from sprite-map: tile body, tip at the front
+      const bodyKey = this.textures.exists("superbeam_body") ? "superbeam_body" : "fx_superbeam";
+      const tipKey = this.textures.exists("superbeam_tip") ? "superbeam_tip" : "fx_superbeam";
+      const bodyImg = this.textures.get(bodyKey).getSourceImage();
+      const bodyNativeH = Math.max(24, (bodyImg && bodyImg.height) || 48);
+      const bodyDisplayH = 56;
+      const bodyScale = bodyDisplayH / bodyNativeH;
+      const bodyStep = bodyDisplayH * 0.78;
+      for (let d = 28; d < dist - 40; d += bodyStep) {
+        const seg = this.add
+          .image(this.player.x + cos * d, this.player.y + sin * d, bodyKey)
+          .setRotation(angle + Math.PI / 2)
+          .setDepth(6)
+          .setAlpha(0.95);
+        seg.setScale(bodyScale);
+        fadeList.push(seg);
+      }
+      const tip = this.add
+        .image(this.player.x + cos * (dist - 20), this.player.y + sin * (dist - 20), tipKey)
+        .setRotation(angle + Math.PI / 2)
+        .setDepth(7)
+        .setAlpha(1);
+      fitSprite(tip, tipKey === "superbeam_tip" ? "superbeam_tip" : "fx_superbeam");
+      fadeList.push(tip);
+
       this.cameras.main.flash(80, 100, 180, 255);
       this.shake = 10;
       SFX.superFire();
 
-      const cos = Math.cos(angle);
-      const sin = Math.sin(angle);
       const hitTargets = new Set();
-
       const damageAlongBeam = () => {
         const step = 16;
         for (let d = 0; d < dist; d += step) {
@@ -1742,12 +1589,11 @@
       this.time.delayedCall(160, damageAlongBeam);
 
       this.tweens.add({
-        targets: [core, glow],
+        targets: fadeList,
         alpha: 0,
         duration: 280,
         onComplete: () => {
-          core.destroy();
-          glow.destroy();
+          fadeList.forEach((o) => o.destroy());
           this.superFiring = false;
         },
       });
@@ -1761,6 +1607,17 @@
 
       this.magneticActive = true;
       this.magneticUntil = this.time.now + MAGNETIC_DURATION_MS;
+      if (this.textures.exists("fx_magnetic")) {
+        const burst = this.add.image(this.player.x, this.player.y, "fx_magnetic").setDepth(8);
+        burst.setScale(0.9);
+        this.tweens.add({
+          targets: burst,
+          alpha: 0,
+          scale: 1.6,
+          duration: 500,
+          onComplete: () => burst.destroy(),
+        });
+      }
       this.magneticRadius = 1200;
       this.magneticReadyAt = this.time.now + MAGNETIC_COOLDOWN_MS;
       this._magneticHit = new Set();
@@ -1819,8 +1676,7 @@
       if (wasPlanet) {
         this.addScore(obs._score || SCORE.planetSmall);
         SFX.explode();
-        this.spawnBurst(x, y, 0xaa66ff, 28);
-        this.spawnBurst(x, y, 0x66ffcc, 16);
+        this.spawnExplosion(x, y, "lg");
         obs.destroy();
       } else {
         this.damageObstacle(obs, 9999, true);
@@ -1830,7 +1686,9 @@
     pickupTextureKey(kind) {
       if (kind === "shield") return "pickup_shield";
       if (kind === "triple") return "pickup_triple";
-      if (kind === "ally") return "ally_drone";
+      if (kind === "ally") return "pickup_ally";
+      if (kind === "super") return "pickup_super";
+      if (kind === "magnetic") return "pickup_magnetic";
       return "fuel";
     }
 
@@ -1851,16 +1709,20 @@
       item.setDepth(6);
       item._kind = kind;
       item._heal = 20;
-      item.body.setSize(14, 16);
+      fitSprite(item, this.pickupTextureKey(kind));
+      const bw = Math.max(14, item.displayWidth * 0.7);
+      const bh = Math.max(14, item.displayHeight * 0.7);
+      item.body.setSize(bw / item.scaleX, bh / item.scaleY);
       if (kind === "ally") {
         item.setAngularVelocity(0);
         item.setAngle(0);
       } else {
         item.setAngularVelocity(Phaser.Math.Between(-40, 40));
       }
+      const base = item.scaleX;
       this.tweens.add({
         targets: item,
-        scale: { from: 0.85, to: 1.15 },
+        scale: { from: base * 0.9, to: base * 1.12 },
         duration: 500,
         yoyo: true,
         repeat: -1,
@@ -1887,9 +1749,11 @@
         if (Math.random() >= 0.8) return;
         const roll = Math.random();
         let kind = "fuel";
-        if (roll < 0.22) kind = "shield";
-        else if (roll < 0.42) kind = "triple";
-        else if (roll < 0.7) kind = "ally";
+        if (roll < 0.16) kind = "shield";
+        else if (roll < 0.32) kind = "triple";
+        else if (roll < 0.5) kind = "ally";
+        else if (roll < 0.62) kind = "super";
+        else if (roll < 0.74) kind = "magnetic";
         this.spawnPickupDrift(kind);
       }
     }
@@ -1914,6 +1778,16 @@
         this.cameras.main.flash(60, 255, 180, 80);
       } else if (kind === "ally") {
         this.recruitAlly(px, py);
+      } else if (kind === "super") {
+        this.superReadyAt = Math.min(this.superReadyAt, this.time.now);
+        SFX.superCharge();
+        this.spawnBurst(player.x, player.y, 0x66ccff, 16);
+        this.cameras.main.flash(70, 120, 200, 255);
+      } else if (kind === "magnetic") {
+        this.magneticReadyAt = Math.min(this.magneticReadyAt, this.time.now);
+        SFX.magnetic();
+        this.spawnBurst(player.x, player.y, 0xaa66ff, 16);
+        this.cameras.main.flash(70, 180, 80, 255);
       } else {
         const before = this.hp;
         this.hp = Math.min(PLAYER_MAX_HP, this.hp + heal);
@@ -1934,8 +1808,12 @@
         this.spawnBurst(this.player.x, this.player.y, 0x66ffaa, 8);
         return;
       }
-      const sprite = this.add.image(fromX, fromY, "ally_drone").setDepth(5);
-      sprite.setScale(1.25);
+      // Must be a Sprite (not Image) so .play() works for ally_fly
+      const sprite = this.add.sprite(fromX, fromY, "ally_drone").setDepth(5);
+      fitSprite(sprite, "ally_drone");
+      if (this.anims.exists("ally_fly")) {
+        sprite.play("ally_fly");
+      }
       this.allies.push({
         sprite,
         kind: "ally",
@@ -2024,6 +1902,14 @@
           } else if (kind === "ally") {
             // Extra helper scooped by a wingman — recruit for the player
             this.recruitAlly(ally.sprite.x, ally.sprite.y);
+          } else if (kind === "super") {
+            this.superReadyAt = Math.min(this.superReadyAt, this.time.now);
+            SFX.superCharge();
+            this.spawnBurst(ally.sprite.x, ally.sprite.y, 0x66ccff, 10);
+          } else if (kind === "magnetic") {
+            this.magneticReadyAt = Math.min(this.magneticReadyAt, this.time.now);
+            SFX.magnetic();
+            this.spawnBurst(ally.sprite.x, ally.sprite.y, 0xaa66ff, 10);
           } else {
             ally.hp = Math.min(ally.maxHp || ALLY_MAX_HP, ally.hp + heal);
             SFX.pickup();
@@ -2073,7 +1959,7 @@
         });
       }
 
-      if (this.mode === "flight" && this.obstacles) {
+      if (this.obstacles) {
         this.obstacles.getChildren().forEach((obs) => {
           if (!obs.active) return;
           for (let i = 0; i < this.allies.length; i++) {
@@ -2097,22 +1983,49 @@
       return !!key && key.startsWith("planet");
     }
 
+    isAsteroidObstacle(obs) {
+      if (!obs || !obs.active) return false;
+      const key = obs.texture && String(obs.texture.key);
+      return !!key && key.startsWith("asteroid");
+    }
+
+    /** Find an X that doesn't stack a new planet on an existing one near the top. */
+    findClearPlanetX(radius, yNear = -40) {
+      const margin = Math.max(60, radius + 40);
+      const minSep = radius * 2 + 36;
+      for (let attempt = 0; attempt < 14; attempt++) {
+        const x = Phaser.Math.Between(margin, W - margin);
+        let ok = true;
+        this.obstacles.getChildren().forEach((obs) => {
+          if (!ok || !obs.active || !this.isPlanetObstacle(obs)) return;
+          // Only care about planets still near the spawn band / upper half
+          if (obs.y > H * 0.55) return;
+          const need = minSep + (obs._radius || 16);
+          if (Phaser.Math.Distance.Between(x, yNear, obs.x, obs.y) < need) ok = false;
+        });
+        if (ok) return x;
+      }
+      // Fallback: park at a side lane
+      return Math.random() < 0.5 ? margin + 10 : W - margin - 10;
+    }
+
     findAllyTarget(ally) {
+      // Flight: asteroids only. Fight: enemies + asteroids. Never planets.
       let best = null;
       let bestDist = 440;
       const ax = ally.sprite.x;
       const ay = ally.sprite.y;
 
-      if (this.mode === "flight") {
-        this.obstacles.getChildren().forEach((obs) => {
-          if (!this.isPlanetObstacle(obs)) return;
-          const d = Phaser.Math.Distance.Between(ax, ay, obs.x, obs.y);
-          if (d < bestDist) {
-            bestDist = d;
-            best = obs;
-          }
-        });
-      } else {
+      this.obstacles.getChildren().forEach((obs) => {
+        if (!this.isAsteroidObstacle(obs)) return;
+        const d = Phaser.Math.Distance.Between(ax, ay, obs.x, obs.y);
+        if (d < bestDist) {
+          bestDist = d;
+          best = obs;
+        }
+      });
+
+      if (this.mode === "fight") {
         this.enemies.getChildren().forEach((enemy) => {
           if (!enemy.active) return;
           const d = Phaser.Math.Distance.Between(ax, ay, enemy.x, enemy.y);
@@ -2122,6 +2035,7 @@
           }
         });
       }
+
       return best;
     }
 
@@ -2147,10 +2061,16 @@
         const hasShield = now < ally.shieldUntil;
         if (hasShield) {
           if (!ally.shieldRing || !ally.shieldRing.active) {
-            ally.shieldRing = this.add
-              .circle(ally.sprite.x, ally.sprite.y, 14, 0x66ccff, 0.2)
-              .setStrokeStyle(2, 0x88ddff, 0.85)
-              .setDepth(4);
+            if (this.textures.exists("fx_shield")) {
+              ally.shieldRing = this.add.image(ally.sprite.x, ally.sprite.y, "fx_shield").setDepth(4);
+              fitSprite(ally.shieldRing, "fx_shield");
+              ally.shieldRing.setScale(ally.shieldRing.scaleX * 0.55);
+            } else {
+              ally.shieldRing = this.add
+                .circle(ally.sprite.x, ally.sprite.y, 14, 0x66ccff, 0.2)
+                .setStrokeStyle(2, 0x88ddff, 0.85)
+                .setDepth(4);
+            }
           }
           ally.shieldRing.setPosition(ally.sprite.x, ally.sprite.y);
           ally.shieldRing.setAlpha(0.5 + Math.sin(now / 90) * 0.3);
@@ -2253,6 +2173,18 @@
     }
 
     spawnBurst(x, y, color, count) {
+      if (this.textures.exists("fx_hit") && count >= 8) {
+        const flash = this.add.image(x, y, "fx_hit").setDepth(9).setAlpha(0.9);
+        fitSprite(flash, "fx_hit");
+        flash.setScale(flash.scaleX * 0.7);
+        this.tweens.add({
+          targets: flash,
+          alpha: 0,
+          scale: flash.scaleX * 1.4,
+          duration: 280,
+          onComplete: () => flash.destroy(),
+        });
+      }
       for (let i = 0; i < count; i++) {
         const p = this.add.image(x, y, "px").setTint(color).setDepth(8);
         const a = Math.random() * Math.PI * 2;
@@ -2266,6 +2198,25 @@
           onComplete: () => p.destroy(),
         });
       }
+    }
+
+    spawnExplosion(x, y, size) {
+      const key =
+        size === "lg" ? "fx_explode_lg" : size === "md" ? "fx_explode_md" : "fx_explode_sm";
+      if (!this.textures.exists(key)) {
+        this.spawnBurst(x, y, 0xffaa66, size === "lg" ? 28 : 14);
+        return;
+      }
+      const boom = this.add.image(x, y, key).setDepth(9);
+      const targetH = size === "lg" ? 72 : size === "md" ? 48 : 32;
+      boom.setScale(targetH / Math.max(1, boom.height));
+      this.tweens.add({
+        targets: boom,
+        alpha: 0,
+        scale: boom.scaleX * 1.25,
+        duration: 420,
+        onComplete: () => boom.destroy(),
+      });
     }
 
     damagePlayer(amount) {
@@ -2297,9 +2248,9 @@
     onLaserHitObstacle(laser, obs) {
       if (!laser.active || !obs.active) return;
       this.recycleLaser(laser);
-      // Ally wingmen can vaporize planets in flight mode
+      // Ally lasers ignore planets (helpers only shoot asteroids / enemies)
       if (laser._fromAlly && this.isPlanetObstacle(obs)) {
-        this.vaporizeObstacle(obs);
+        this.spawnBurst(laser.x, laser.y, 0x88aaff, 4);
         return;
       }
       if (obs._indestructible) {
@@ -2322,7 +2273,7 @@
         const y = obs.y;
         this.addScore(obs._score || SCORE.smallAsteroid);
         SFX.explode();
-        this.spawnBurst(x, y, 0xffaa66, fromSuper ? 28 : 14);
+        this.spawnExplosion(x, y, fromSuper ? "lg" : "sm");
         obs.destroy();
       }
     }
@@ -2342,7 +2293,8 @@
         this.addScore(enemy._score || SCORE.scout);
         this.kills += 1;
         SFX.explode();
-        this.spawnBurst(x, y, 0xffaa33, fromSuper ? 30 : 16);
+        const size = enemy._doomstar || enemy._heavy ? "lg" : fromSuper ? "md" : "sm";
+        this.spawnExplosion(x, y, size);
         enemy.destroy();
       }
     }
@@ -2375,9 +2327,15 @@
       const ox = offsetX || 0;
       const oy = offsetY || 0;
       const options = opts || {};
-      const bolt = this.enemyLasers.create(enemy.x + ox, enemy.y + oy, key || "enemy_laser");
+      const tex = key || "enemy_laser";
+      const bolt = this.enemyLasers.create(enemy.x + ox, enemy.y + oy, tex);
       if (!bolt) return null;
       bolt.setDepth(3);
+      if (options.displayH && bolt.height) {
+        bolt.setScale(options.displayH / bolt.height);
+      } else {
+        fitSprite(bolt, tex);
+      }
       bolt._dmg = dmg || 8;
       bolt._homing = !!options.homing;
       bolt._homingTurn = options.homingTurn || 0.05;
@@ -2657,22 +2615,23 @@
         hp = 99999;
         score = key === "planet_s" ? SCORE.planetSmall : SCORE.planetLarge;
         touch = key === "planet_s" ? 25 : 30;
-        radius = key === "planet_s" ? 14 : 20;
+        radius = key === "planet_s" ? 12 : 16;
         indestructible = true;
       } else {
         key = "planet_indestruct";
         speed = 50;
         hp = 99999;
         score = SCORE.planetHuge;
-        touch = 32;
-        radius = 24;
+        touch = 28;
+        radius = 18;
         indestructible = true;
       }
 
-      // Keep a clear dodge lane — never park a planet in the exact center strip every time
-      const margin = Math.max(60, radius + 40);
-      const x = Phaser.Math.Between(margin, W - margin);
+      const x = indestructible
+        ? this.findClearPlanetX(radius, -40)
+        : Phaser.Math.Between(Math.max(60, radius + 40), W - Math.max(60, radius + 40));
       const o = this.obstacles.create(x, -40, key);
+      fitSprite(o, key);
       o.setVelocity(0, speed);
       o.setDepth(2);
       o._hp = hp;
@@ -2681,7 +2640,11 @@
       o._radius = radius;
       o._indestructible = indestructible;
       o.body.setCircle(radius, o.width / 2 - radius, o.height / 2 - radius);
-      if (!indestructible) {
+      if (indestructible) {
+        // Slow axial spin, random direction
+        const spin = Phaser.Math.Between(6, 18) * (Math.random() < 0.5 ? -1 : 1);
+        o.setAngularVelocity(spin);
+      } else {
         o.setAngularVelocity(Phaser.Math.Between(-40, 40));
       }
 
@@ -2733,6 +2696,7 @@
       super.create();
       this.enemySpawnAcc = 3; // calm start
       this.asteroidAcc = 0;
+      this.planetAcc = 2; // first planet a bit after start
       this.wave = 1;
     }
 
@@ -2747,6 +2711,8 @@
         spawnInterval: Math.max(1.2, 4.0 - t * 0.03),
         // Asteroids appear more often later
         asteroidInterval: Math.max(1.4, 3.2 - t * 0.02),
+        // Planets in fight too, but rarer than asteroids (~every 11–16s)
+        planetInterval: Math.max(11.0, 16.0 - t * 0.02),
         // Scout → fighter → heavy first; Doomstar only late (after ~3 min)
         fighterChance: t < 30 ? 0 : t < 60 ? 0.25 : t < 120 ? 0.4 : 0.5,
         heavyChance: t < 60 ? 0 : t < 120 ? 0.12 : t < 180 ? 0.22 : 0.3,
@@ -2806,6 +2772,9 @@
         x = this.player.x < W / 2 ? W - 80 : 80;
       }
 
+      const heavyKeys = ["enemy_heavy", "enemy_heavy_2", "enemy_heavy_3", "enemy_heavy_4"].filter((k) =>
+        this.textures.exists(k)
+      );
       const key =
         type === "scout"
           ? "enemy_scout"
@@ -2813,8 +2782,9 @@
             ? "enemy_fighter"
             : type === "doomstar"
               ? "enemy_doomstar"
-              : "enemy_heavy";
+              : heavyKeys[Phaser.Math.Between(0, heavyKeys.length - 1)] || "enemy_heavy";
       const e = this.enemies.create(x, y, key);
+      fitSprite(e, key);
       e.setDepth(3);
       e._type = type;
       e._nextShot = this.time.now + Phaser.Math.Between(500, 1400);
@@ -2838,18 +2808,20 @@
         e._shotDmg = 10;
         e.body.setSize(24, 16);
       } else if (type === "doomstar") {
-        // Stronger than Heavy — dual wing weapons that swap from time to time
+        // Doom Star Boss — largest sprite-map ship, dual forward cannons
         e._hp = 320;
         e._score = SCORE.doomstar;
         e._speed = 48 * diff.moveScale;
-        e._radius = 28;
+        e._radius = 42;
         e._fireEvery = 720 * diff.fireRateScale;
         e._shotSpeed = 230;
-        e._shotDmg = 14;
+        e._shotDmg = 30; // serious boss hits (invuln eats multi-hits)
+        e._missileDmg = 36;
+        e._laserDmg = 16;
         e._doomstar = true;
         e._weaponMode = "cannons";
         e._weaponShotsLeft = Phaser.Math.Between(3, 5);
-        e.body.setSize(56, 48);
+        e.body.setSize(96, 52);
         this.cameras.main.flash(100, 180, 40, 60);
         SFX.enemyLaser();
       } else {
@@ -2859,7 +2831,7 @@
         e._radius = 22;
         e._fireEvery = 1000 * diff.fireRateScale;
         e._shotSpeed = 190;
-        e._shotDmg = 18;
+        e._shotDmg = 16;
         e._heavy = true;
         e.body.setSize(40, 28);
       }
@@ -2892,10 +2864,10 @@
 
     doomstarGunOffsets(enemy) {
       const angle = Phaser.Math.Angle.Between(enemy.x, enemy.y, this.player.x, this.player.y);
-      const side = 18;
+      const side = 28;
       const px = Math.cos(angle + Math.PI / 2) * side;
       const py = Math.sin(angle + Math.PI / 2) * side;
-      const fwd = 10;
+      const fwd = 36;
       const fx = Math.cos(angle) * fwd;
       const fy = Math.sin(angle) * fwd;
       return { angle, left: { x: fx + px, y: fy + py }, right: { x: fx - px, y: fy - py } };
@@ -2910,11 +2882,12 @@
 
       if (mode === "missiles") {
         // Twin homing missiles — slower, harder hitting
+        const mdmg = enemy._missileDmg || 36;
         this.fireEnemyProjectile(
           enemy,
           155,
           "doomstar_missile",
-          20,
+          mdmg,
           guns.left.x,
           guns.left.y,
           { homing: true, homingTurn: 0.045, lifeMs: 3200, silent: true }
@@ -2923,7 +2896,7 @@
           enemy,
           155,
           "doomstar_missile",
-          20,
+          mdmg,
           guns.right.x,
           guns.right.y,
           { homing: true, homingTurn: 0.045, lifeMs: 3200, silent: true }
@@ -2934,8 +2907,9 @@
 
       if (mode === "lasers") {
         // Twin cyan laser streams — faster, lighter hits
+        const ldmg = enemy._laserDmg || 16;
         const mk = (ox, oy, silent) =>
-          this.fireEnemyProjectile(enemy, 300, "doomstar_laser", 9, ox, oy, {
+          this.fireEnemyProjectile(enemy, 300, "doomstar_laser", ldmg, ox, oy, {
             silent,
             lifeMs: 1800,
           });
@@ -3022,17 +2996,21 @@
         }
 
         e.setVelocity(vx, vy);
-        // Face player visually for enemies only
-        e.setRotation(angle + Math.PI / 2);
+        // Face player — Doomstar art points right (cannons on +X); others are tip-up
+        e.setRotation(e._doomstar ? angle : angle + Math.PI / 2);
 
         if (this.time.now >= e._nextShot) {
           e._nextShot = this.time.now + e._fireEvery + Phaser.Math.Between(-150, 200);
           if (e._doomstar) {
             this.fireDoomstarVolley(e);
           } else if (e._heavy) {
-            this.fireEnemyProjectile(e, e._shotSpeed, "heavy_shot", e._shotDmg);
+            // Enemy Heavy shot = same crimson bolt as Doomstar, just smaller
+            const heavyOpts = { displayH: 14 };
+            this.fireEnemyProjectile(e, e._shotSpeed, "doomstar_shot", e._shotDmg, 0, 0, heavyOpts);
             this.time.delayedCall(120, () => {
-              if (e.active) this.fireEnemyProjectile(e, e._shotSpeed, "heavy_shot", e._shotDmg);
+              if (e.active) {
+                this.fireEnemyProjectile(e, e._shotSpeed, "doomstar_shot", e._shotDmg, 0, 0, heavyOpts);
+              }
             });
           } else {
             this.fireEnemyProjectile(e, e._shotSpeed, "enemy_laser", e._shotDmg);
@@ -3045,6 +3023,7 @@
       const big = Math.random() < 0.3;
       const key = big ? "asteroid_l" : "asteroid_s";
       const o = this.obstacles.create(Phaser.Math.Between(40, W - 40), -30, key);
+      fitSprite(o, key);
       const speed = big ? 70 : 100;
       o.setVelocity(Phaser.Math.Between(-30, 30), speed);
       o._hp = big ? 55 : 20;
@@ -3053,6 +3032,47 @@
       o._radius = big ? 18 : 8;
       o.body.setCircle(o._radius, o.width / 2 - o._radius, o.height / 2 - o._radius);
       o.setAngularVelocity(Phaser.Math.Between(-50, 50));
+    }
+
+    spawnFightPlanet() {
+      const roll = Math.random();
+      let key;
+      let speed;
+      let touch;
+      let radius;
+      let score;
+      if (roll < 0.55) {
+        key = "planet_s";
+        speed = 55;
+        touch = 22;
+        radius = 12;
+        score = SCORE.planetSmall;
+      } else if (roll < 0.85) {
+        key = "planet_l";
+        speed = 45;
+        touch = 26;
+        radius = 16;
+        score = SCORE.planetLarge;
+      } else {
+        key = "planet_indestruct";
+        speed = 40;
+        touch = 28;
+        radius = 18;
+        score = SCORE.planetHuge;
+      }
+      const x = this.findClearPlanetX(radius, -50);
+      const o = this.obstacles.create(x, -50, key);
+      fitSprite(o, key);
+      o.setVelocity(Phaser.Math.Between(-20, 20), speed);
+      o.setDepth(2);
+      o._hp = 99999;
+      o._score = score;
+      o._touchDmg = touch;
+      o._radius = radius;
+      o._indestructible = true;
+      o.body.setCircle(radius, o.width / 2 - radius, o.height / 2 - radius);
+      const spin = Phaser.Math.Between(6, 18) * (Math.random() < 0.5 ? -1 : 1);
+      o.setAngularVelocity(spin);
     }
 
     update(time, delta) {
@@ -3083,6 +3103,12 @@
         this.spawnFightAsteroid();
       }
 
+      this.planetAcc += dt;
+      if (!this.magneticActive && this.planetAcc >= diff.planetInterval) {
+        this.planetAcc = 0;
+        this.spawnFightPlanet();
+      }
+
       // Score only for destroying targets — no passive survival points
     }
   }
@@ -3093,10 +3119,12 @@
     parent: "game",
     width: W,
     height: H,
-    backgroundColor: "#05070f",
-    pixelArt: true,
-    antialias: false,
-    roundPixels: true,
+    backgroundColor: "#00000000",
+    transparent: true,
+    // Soft sprite-map art (not nearest-neighbor pixel crunch)
+    pixelArt: false,
+    antialias: true,
+    roundPixels: false,
     physics: {
       default: "arcade",
       arcade: {

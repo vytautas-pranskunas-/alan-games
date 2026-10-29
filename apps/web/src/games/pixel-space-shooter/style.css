@@ -11,7 +11,7 @@ body {
   width: 100%;
   height: 100%;
   overflow: hidden;
-  background: #02040a;
+  background: #1c1230;
   font-family: "Courier New", Courier, monospace;
   touch-action: none;
   user-select: none;
@@ -27,21 +27,45 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: radial-gradient(ellipse at center, #0a1230 0%, #02040a 70%);
+  background: #1c1230;
   position: relative;
+  overflow: hidden;
+}
+
+/*
+ * Far space at native tile pixels (1168×2312 mirror-seamless) — never scaled.
+ * Mirror-paired tile so left/right and top/bottom edges match exactly.
+ */
+#space-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.9;
+  background-color: #1c1230;
+  background-image: url("space_tile.png?v=6");
+  background-repeat: repeat;
+  background-size: 1168px 2312px;
+  background-position: 0 0;
+  image-rendering: auto;
+}
+
+#game {
+  position: relative;
+  z-index: 1;
 }
 
 #game,
 #game canvas {
   display: block;
-  image-rendering: pixelated;
-  image-rendering: crisp-edges;
+  /* Smooth filtering so sprite-map art keeps soft edges */
+  image-rendering: auto;
 }
 
 #game canvas {
   max-width: 100vw;
   max-height: 100dvh;
-  box-shadow: 0 0 40px rgba(40, 120, 255, 0.15);
+  background: transparent !important;
 }
 
 /* Portrait phones: game is too short — ask to rotate */
@@ -50,7 +74,7 @@ body {
   position: fixed;
   inset: 0;
   z-index: 100;
-  background: rgba(2, 4, 10, 0.94);
+  background: rgba(28, 18, 48, 0.94);
   color: #c8e6ff;
   flex-direction: column;
   align-items: center;
