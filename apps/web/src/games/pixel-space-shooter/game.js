@@ -16,9 +16,12 @@
     const cw = Math.max(1, (wrap && wrap.clientWidth) || window.innerWidth || 960);
     const ch = Math.max(1, (wrap && wrap.clientHeight) || window.innerHeight || 540);
     const aspect = cw / ch;
-    let nextH = 540;
+    // Match CSS pixel size of the wrap so Scale.FIT barely stretches the canvas
+    // (same idea as web: one downscale from HD PNG → screen, not bake-then-upscale)
+    let nextH = Math.round(Math.min(1200, Math.max(540, ch)));
     let nextW = Math.max(640, Math.round(nextH * aspect));
     nextW -= nextW % 2;
+    nextH -= nextH % 2;
     return { width: nextW, height: nextH };
   }
 
@@ -41,6 +44,182 @@
   }
 
   syncViewportSize(null);
+
+  /**
+   * Design height speeds/UI were tuned for. On larger canvases we scale up,
+   * but SPEED_SCALE_MAX caps gameplay so it doesn't feel frantic.
+   * Original 540p feel ≈ scale 1.0; raise/lower SPEED_SCALE_MAX to taste.
+   */
+  const DESIGN_H = 540;
+  const SPEED_SCALE_MAX = 1.2;
+  const UI_SCALE_MAX = 1.45;
+  /** Extra multiplier for enemy bolts (design shotSpeeds felt slow on large canvas). */
+  const ENEMY_SHOT_SPEED_MULT = 1.55;
+
+  function speedScale() {
+    return Math.min(SPEED_SCALE_MAX, Math.max(1, H / DESIGN_H));
+  }
+  function uiScale() {
+    return Math.min(UI_SCALE_MAX, Math.max(1, H / DESIGN_H));
+  }
+  /** Design px/s → current playfield (capped). */
+  function spd(v) {
+    return v * speedScale();
+  }
+  /** Design UI px → current canvas (capped separately from speed). */
+  function uiPx(v) {
+    return Math.round(v * uiScale());
+  }
+
+  /** Shared menu button metrics — same size/gap on start, pause, game over. */
+  const MENU_BTN_TEX = "ui_menu_button";
+  /** Native crop aspect from button.png (do not stretch / nine-slice). */
+  const MENU_BTN_ASPECT = 1205 / 345;
+  function menuBtnHeight() {
+    return uiPx(62);
+  }
+  function menuBtnGap() {
+    return uiPx(14);
+  }
+  function menuBtnWidthForHeight(h) {
+    return Math.round(h * MENU_BTN_ASPECT);
+  }
+
+  /**
+   * Vertical stack of textured menu buttons with fixed gaps.
+   * Pass [{ text, onClick }, ...] — identical spacing on every screen.
+   * Scales button.png uniformly (keeps metal frame / cyan glow / honeycomb intact).
+   */
+  class MenuButtonList {
+    /**
+     * @param {Phaser.Scene} scene
+     * @param {{ text: string, onClick: Function }[]} items
+     * @param {{
+     *   x?: number,
+     *   top?: number,
+     *   centerY?: number,
+     *   height?: number,
+     *   gap?: number,
+     *   depth?: number,
+     *   scrollFactor?: number,
+     *   fontSize?: number,
+     * }} [opts]
+     */
+    constructor(scene, items, opts = {}) {
+      this.scene = scene;
+      this.items = items || [];
+      this.x = opts.x != null ? opts.x : W / 2;
+      this.btnH = opts.height != null ? opts.height : menuBtnHeight();
+      this.btnW = menuBtnWidthForHeight(this.btnH);
+      this.gap = opts.gap != null ? opts.gap : menuBtnGap();
+      this.depth = opts.depth != null ? opts.depth : 10;
+      this.scrollFactor = opts.scrollFactor;
+      this.fontSize = opts.fontSize != null ? opts.fontSize : uiPx(18);
+      this.buttons = [];
+      this.objs = [];
+
+      const n = this.items.length;
+      this.totalHeight = n > 0 ? n * this.btnH + (n - 1) * this.gap : 0;
+      if (opts.centerY != null) {
+        this.top = opts.centerY - this.totalHeight / 2;
+      } else {
+        this.top = opts.top != null ? opts.top : uiPx(260);
+      }
+
+      this.items.forEach((item, i) => {
+        const y = this.top + this.btnH / 2 + i * (this.btnH + this.gap);
+        const btn = this._makeButton(item.text, y, item.onClick);
+        this.buttons.push(btn);
+      });
+    }
+
+    _applyMeta(go) {
+      go.setDepth(this.depth);
+      if (this.scrollFactor != null && go.setScrollFactor) {
+        go.setScrollFactor(this.scrollFactor);
+      }
+      this.objs.push(go);
+      return go;
+    }
+
+    _makeButton(text, y, onClick) {
+      let bg;
+      if (this.scene.textures.exists(MENU_BTN_TEX)) {
+        bg = this.scene.add.image(this.x, y, MENU_BTN_TEX).setOrigin(0.5);
+        // Uniform scale only — never squash or nine-slice this art
+        const srcH = Math.max(1, bg.height || bg.frame.height);
+        bg.setScale(this.btnH / srcH);
+      } else {
+        bg = this.scene.add
+          .rectangle(this.x, y, this.btnW, this.btnH, 0x122038, 0.95)
+          .setStrokeStyle(2, 0x3a6a9a);
+      }
+      this._applyMeta(bg);
+      // Hit box matches visible button bounds (not full texture padding)
+      bg.setInteractive(
+        new Phaser.Geom.Rectangle(
+          -this.btnW / 2,
+          -this.btnH / 2,
+          this.btnW,
+          this.btnH
+        ),
+        Phaser.Geom.Rectangle.Contains
+      );
+      bg.input.cursor = "pointer";
+
+      const label = this._applyMeta(
+        this.scene.add
+          .text(this.x, y, text, {
+            fontFamily: "Courier New, monospace",
+            fontSize: `${this.fontSize}px`,
+            color: "#e8eef8",
+            align: "center",
+            stroke: "#061018",
+            strokeThickness: Math.max(2, Math.round(this.fontSize * 0.12)),
+          })
+          .setOrigin(0.5, 0.52)
+      );
+      label.setInteractive({ useHandCursor: true });
+
+      const hoverIn = () => {
+        if (bg.setTint) bg.setTint(0xd0ecff);
+        label.setColor("#9fd4ff");
+      };
+      const hoverOut = () => {
+        if (bg.clearTint) bg.clearTint();
+        label.setColor("#e8eef8");
+      };
+      const click = () => {
+        SFX.ui();
+        SFX.ensure();
+        if (typeof onClick === "function") onClick();
+      };
+      bg.on("pointerover", hoverIn);
+      bg.on("pointerout", hoverOut);
+      bg.on("pointerdown", click);
+      label.on("pointerover", hoverIn);
+      label.on("pointerout", hoverOut);
+      label.on("pointerdown", click);
+
+      return { bg, label, y, text };
+    }
+
+    /** Add all button objects into a Phaser container (pause / game over). */
+    addTo(container) {
+      if (!container) return this;
+      this.objs.forEach((o) => container.add(o));
+      return this;
+    }
+
+    destroy() {
+      this.objs.forEach((o) => {
+        if (o && o.destroy) o.destroy();
+      });
+      this.objs = [];
+      this.buttons = [];
+    }
+  }
+
   const SUPER_COOLDOWN_MS = 30000;
   const MAGNETIC_COOLDOWN_MS = 60000;
   const MAGNETIC_DURATION_MS = 2000;
@@ -62,9 +241,9 @@
       shotDmg: 12,
       shotSpeed: 560,
       dualGuns: false,
-      bodyW: 20,
-      bodyH: 16,
-      shieldR: 22,
+      bodyW: 28,
+      bodyH: 24,
+      shieldR: 40,
     },
     dreadnought: {
       id: "dreadnought",
@@ -77,9 +256,9 @@
       shotDmg: 26,
       shotSpeed: 500,
       dualGuns: true,
-      bodyW: 36,
-      bodyH: 26,
-      shieldR: 30,
+      bodyW: 48,
+      bodyH: 36,
+      shieldR: 50,
     },
   };
 
@@ -95,8 +274,9 @@
   const ALLY_PICKUP_RADIUS = 22;
   /** Dev test helper join at start — off for normal play. */
   const TEST_START_HELPER = false;
+  const TEST_START_HELPER_COUNT = 3;
   /** TEMP: force tablet sticks/buttons in desktop browser for UI preview. */
-  const FORCE_TOUCH_UI = true;
+  const FORCE_TOUCH_UI = false;
 
   const SCORE = {
     smallAsteroid: 10,
@@ -244,50 +424,102 @@
     },
   };
 
-  /** Display heights so atlas crops fit the 960×540 playfield. */
+  /**
+   * Target on-canvas heights (px). Tuned near native PNG heights so we mostly
+   * downscale HD art once — never crush to ~half then let Scale.FIT blow it up.
+   * Native refs: player 84, dread 142, doomstar 131, laser 83, scout 60, …
+   */
   const SPRITE_H = {
-    player: 36,
-    player_dread: 56,
-    ally_drone: 22,
-    enemy_scout: 28,
-    enemy_fighter: 34,
-    enemy_heavy: 42,
-    enemy_heavy_2: 42,
-    enemy_heavy_3: 42,
-    enemy_heavy_4: 42,
-    enemy_doomstar: 78,
-    // Keep near native crop size — upscaling planet art looks soft/blurry
-    planet_s: 28,
-    planet_l: 40,
-    planet_indestruct: 46,
-    asteroid_s: 18,
-    asteroid_l: 34,
-    laser: 28,
-    laser_tip: 18,
-    superbeam_tip: 36,
-    superbeam_body: 24,
-    fx_superbeam: 120,
-    dread_shot: 8,
-    fx_shield: 52,
-    enemy_laser: 16,
-    heavy_shot: 20,
-    doomstar_shot: 24,
-    doomstar_laser: 28,
-    doomstar_missile: 26,
-    fuel: 22,
-    pickup_shield: 24,
-    pickup_triple: 24,
-    pickup_ally: 28,
-    pickup_super: 24,
-    pickup_magnetic: 24,
-    crosshair: 22,
+    player: 64,
+    player_dread: 96,
+    ally_drone: 36,
+    enemy_scout: 48,
+    enemy_fighter: 54,
+    enemy_heavy: 56,
+    enemy_heavy_2: 56,
+    enemy_heavy_3: 56,
+    enemy_heavy_4: 56,
+    enemy_doomstar: 110,
+    planet_s: 44,
+    planet_l: 72,
+    planet_indestruct: 78,
+    asteroid_s: 32,
+    asteroid_l: 40,
+    laser: 56,
+    player_laser: 20, // slightly larger than enemy bolt thickness
+    laser_tip: 32,
+    superbeam_tip: 40,
+    superbeam_body: 72,
+    fx_superbeam: 160,
+    dread_shot: 16,
+    fx_shield: 86,
+    enemy_laser: 52,
+    heavy_shot: 12,
+    doomstar_shot: 48,
+    doomstar_laser: 72,
+    doomstar_missile: 64,
+    fuel: 40,
+    pickup_shield: 48,
+    pickup_triple: 48,
+    pickup_ally: 52,
+    pickup_super: 44,
+    pickup_magnetic: 48,
+    crosshair: 48,
   };
 
   function fitSprite(sprite, key) {
     const h = SPRITE_H[key];
     if (!sprite || !h || !sprite.height) return sprite;
-    sprite.setScale(h / sprite.height);
+    // Never upscale past native — only shrink HD → target (web-like)
+    sprite.setScale(Math.min(1, h / sprite.height));
     return sprite;
+  }
+
+  /**
+   * Arcade body size is in source (unscaled) px. After setTexture/setScale,
+   * size the hitbox and center it on the sprite's world position.
+   * Prefer worldPx for a stable on-screen hit size (needed for tiny scaled bolts).
+   */
+  function syncArcadeBody(go, bodyW, bodyH, worldPx) {
+    if (!go || !go.body) return;
+    const sx = Math.max(0.01, Math.abs(go.scaleX || 1));
+    const sy = Math.max(0.01, Math.abs(go.scaleY || 1));
+    let bw;
+    let bh;
+    if (worldPx != null) {
+      bw = worldPx / sx;
+      bh = worldPx / sy;
+    } else {
+      const fw = Math.max(1, go.frame ? go.frame.width : go.width);
+      const fh = Math.max(1, go.frame ? go.frame.height : go.height);
+      bw = bodyW != null ? bodyW : fw;
+      bh = bodyH != null ? bodyH : fh;
+    }
+    bw = Math.max(4, bw);
+    bh = Math.max(4, bh);
+    go.body.setSize(bw, bh, false);
+    // displayOrigin is unscaled; body.x = go.x - displayOrigin*scale + offset*scale
+    // Want body center on go.x → offset = displayOrigin - (worldSize/2)/scale
+    const worldW = bw * sx;
+    const worldH = bh * sy;
+    const ox = go.displayOriginX - worldW / (2 * sx);
+    const oy = go.displayOriginY - worldH / (2 * sy);
+    go.body.setOffset(ox, oy);
+    if (typeof go.body.updateFromGameObject === "function") {
+      go.body.updateFromGameObject();
+    }
+  }
+
+  /** Circle body sized to the visible sprite (not the tiny design _radius alone). */
+  function syncObstacleCircle(o, minRadius) {
+    if (!o || !o.body) return;
+    const visualR = Math.max(
+      minRadius || 8,
+      Math.min(o.displayWidth || 0, o.displayHeight || 0) * 0.36
+    );
+    o._radius = visualR;
+    const srcR = visualR / Math.max(0.01, Math.abs(o.scaleX || 1));
+    o.body.setCircle(srcR, o.width / 2 - srcR, o.height / 2 - srcR);
   }
 
   const SPRITE_FILES = [
@@ -313,6 +545,7 @@
     "asteroid_s",
     "asteroid_l",
     "laser",
+    "player_laser",
     "dread_shot",
     "enemy_laser",
     "heavy_shot",
@@ -372,6 +605,14 @@
       this.load.image("ui_stick_knob", "ui/controller.png");
       this.load.image("ui_btn_laser", "ui/laser.png");
       this.load.image("ui_btn_explosion", "ui/explosion.png");
+      // Control-panels HUD (cropped from control-panels.png — native HD)
+      this.load.image("hud_hp_frame", "ui/hud_hp_frame.png");
+      this.load.image("hud_hp_fill", "ui/hud_hp_fill.png");
+      this.load.image("hud_ability_panel", "ui/hud_ability_panel.png");
+      this.load.image("hud_mag_fill", "ui/hud_mag_fill.png");
+      this.load.image("hud_super_fill", "ui/hud_super_fill.png");
+      // Cropped from ui/button.png — shared start / pause / game-over menus
+      this.load.image(MENU_BTN_TEX, "ui/menu_button.png?v=3");
       SPRITE_FILES.forEach((key) => {
         this.load.image(key, `sprites/game/${key}.png`);
       });
@@ -389,12 +630,22 @@
           this.textures.get(key).setFilter(Phaser.Textures.FilterMode.NEAREST);
         }
       });
-      // HD tablet UI — always bilinear (never nearest / pixel crunch)
-      ["ui_stick_base", "ui_stick_knob", "ui_btn_laser", "ui_btn_explosion"].forEach((key) => {
+      // HD tablet + HUD UI — always bilinear (never nearest / pixel crunch)
+      [
+        "ui_stick_base",
+        "ui_stick_knob",
+        "ui_btn_laser",
+        "ui_btn_explosion",
+        "hud_hp_frame",
+        "hud_hp_fill",
+        "hud_ability_panel",
+        "hud_mag_fill",
+        "hud_super_fill",
+        MENU_BTN_TEX,
+      ].forEach((key) => {
         if (this.textures.exists(key)) {
           const tex = this.textures.get(key);
           tex.setFilter(Phaser.Textures.FilterMode.LINEAR);
-          // Also force GL mag/min on the underlying source image if present
           const src = tex.getSourceImage && tex.getSourceImage();
           if (src && src.style) {
             src.style.imageRendering = "auto";
@@ -462,7 +713,7 @@
           layer.alpha
         );
         s.setDepth(-10);
-        s._speed = layer.speed;
+        s._speed = layer.speed * speedScale();
         stars.push(s);
       }
     });
@@ -490,39 +741,48 @@
 
     create() {
       document.body.classList.add("menu-cursor");
+      syncViewportSize(this.game);
       this.stars = createStarfield(this);
+
+      // Header + ship preview, then buttons — leave clear gaps so nothing overlaps
       this.add
-        .text(W / 2, 70, "PIXEL SPACE SHOOTER", {
+        .text(W / 2, uiPx(44), "PIXEL SPACE SHOOTER", {
           fontFamily: "Courier New, monospace",
-          fontSize: "36px",
+          fontSize: `${uiPx(30)}px`,
           color: "#7ec8ff",
           stroke: "#1a3a6a",
-          strokeThickness: 4,
+          strokeThickness: Math.max(3, uiPx(4)),
         })
         .setOrigin(0.5);
 
       this.add
-        .text(W / 2, 110, "STAR WARS–INSPIRED PIXEL ARCADE", {
+        .text(W / 2, uiPx(74), "STAR WARS–INSPIRED PIXEL ARCADE", {
           fontFamily: "Courier New, monospace",
-          fontSize: "14px",
+          fontSize: `${uiPx(12)}px`,
           color: "#6a88aa",
         })
         .setOrigin(0.5);
 
+      // Selected ship block: small preview, then name + bests underneath (no overlap)
       const selected = getSelectedShip();
-      const ship = this.add.image(W / 2, 175, selected.texture).setScale(selected.id === "dreadnought" ? 1.6 : 2.5);
+      const previewH = uiPx(58);
+      const shipY = uiPx(140);
+      const ship = this.add.image(W / 2, shipY, selected.texture);
+      ship.setScale(Math.min(1.15, previewH / Math.max(1, ship.height)));
       this.tweens.add({
         targets: ship,
-        y: 185,
+        y: shipY + uiPx(6),
         duration: 1600,
         yoyo: true,
         repeat: -1,
         ease: "Sine.easeInOut",
       });
+
+      const nameY = shipY + previewH * 0.55 + uiPx(14);
       this.add
-        .text(W / 2, 220, selected.name, {
+        .text(W / 2, nameY, selected.name, {
           fontFamily: "Courier New, monospace",
-          fontSize: "12px",
+          fontSize: `${uiPx(14)}px`,
           color: "#7ec8ff",
         })
         .setOrigin(0.5);
@@ -530,44 +790,36 @@
       const flightBest = Storage.getBest("flight");
       const fightBest = Storage.getBest("fight");
       this.add
-        .text(W / 2, 248, `BEST FLIGHT ${flightBest}   ·   BEST FIGHT ${fightBest}`, {
-          fontFamily: "Courier New, monospace",
-          fontSize: "12px",
-          color: "#8899aa",
-        })
+        .text(
+          W / 2,
+          nameY + uiPx(22),
+          `BEST FLIGHT ${flightBest}   ·   BEST FIGHT ${fightBest}`,
+          {
+            fontFamily: "Courier New, monospace",
+            fontSize: `${uiPx(12)}px`,
+            color: "#8899aa",
+          }
+        )
         .setOrigin(0.5);
 
-      const items = [
-        { label: "1. FLIGHT MODE", scene: "Flight", y: 290 },
-        { label: "2. FIGHT MODE", scene: "Fight", y: 330 },
-        { label: "3. CONTROLS", scene: "Controls", y: 370 },
-        { label: "4. SETTINGS", scene: "Settings", y: 410 },
-        { label: "5. SELECT SHIP", scene: "ShipSelect", y: 450 },
-      ];
-
-      items.forEach((item) => {
-        const btn = this.add
-          .text(W / 2, item.y, item.label, {
-            fontFamily: "Courier New, monospace",
-            fontSize: "22px",
-            color: "#e8eef8",
-            backgroundColor: "#122038",
-            padding: { x: 18, y: 8 },
-          })
-          .setOrigin(0.5)
-          .setInteractive({ useHandCursor: true });
-
-        btn.on("pointerover", () => btn.setStyle({ color: "#7ec8ff" }));
-        btn.on("pointerout", () => btn.setStyle({ color: "#e8eef8" }));
-        btn.on("pointerdown", () => {
-          SFX.ui();
-          SFX.ensure();
-          if (item.scene === "Flight" || item.scene === "Fight") {
-            document.body.classList.remove("menu-cursor");
-          }
-          this.scene.start(item.scene);
-        });
-      });
+      const go = (sceneKey) => {
+        if (sceneKey === "Flight" || sceneKey === "Fight") {
+          document.body.classList.remove("menu-cursor");
+        }
+        this.scene.start(sceneKey);
+      };
+      const buttonsTop = nameY + uiPx(52);
+      this.menuButtons = new MenuButtonList(
+        this,
+        [
+          { text: "FLIGHT MODE", onClick: () => go("Flight") },
+          { text: "FIGHT MODE", onClick: () => go("Fight") },
+          { text: "CONTROLS", onClick: () => go("Controls") },
+          { text: "SETTINGS", onClick: () => go("Settings") },
+          { text: "SELECT SHIP", onClick: () => go("ShipSelect") },
+        ],
+        { top: buttonsTop, fontSize: uiPx(17) }
+      );
 
       this.input.keyboard.on("keydown-ONE", () => {
         SFX.ensure();
@@ -595,18 +847,26 @@
     }
     create() {
       document.body.classList.add("menu-cursor");
-      this.add.rectangle(0, 0, W, H, 0x05070f, 0.92).setOrigin(0);
+      try {
+        this.scene.stop("Menu");
+      } catch (e) {
+        /* ignore */
+      }
+      syncViewportSize(this.game);
+      this.stars = createStarfield(this);
+      this.add.rectangle(0, 0, W, H, 0x05070f, 0.88).setOrigin(0).setDepth(-5);
+
       this.add
-        .text(W / 2, 48, "SELECT SHIP", {
+        .text(W / 2, uiPx(48), "SELECT SHIP", {
           fontFamily: "Courier New, monospace",
-          fontSize: "32px",
+          fontSize: `${uiPx(32)}px`,
           color: "#7ec8ff",
         })
         .setOrigin(0.5);
       this.add
-        .text(W / 2, 88, "Choose your craft — saved under Settings", {
+        .text(W / 2, uiPx(84), "Choose your craft — saved under Settings", {
           fontFamily: "Courier New, monospace",
-          fontSize: "13px",
+          fontSize: `${uiPx(13)}px`,
           color: "#6a88aa",
         })
         .setOrigin(0.5);
@@ -614,33 +874,41 @@
       this.selectedId = Storage.getShipId();
       this.cards = [];
       const list = [SHIPS.interceptor, SHIPS.dreadnought];
+      const panelW = uiPx(260);
+      const panelH = uiPx(200);
+      const cy = uiPx(250);
       list.forEach((ship, i) => {
-        const cx = W / 2 + (i === 0 ? -200 : 200);
-        const cy = 280;
+        const cx = W / 2 + (i === 0 ? -uiPx(170) : uiPx(170));
         const panel = this.add
-          .rectangle(cx, cy, 280, 300, 0x122038, 1)
+          .rectangle(cx, cy, panelW, panelH, 0x122038, 1)
           .setStrokeStyle(2, 0x2a4a6a)
           .setInteractive({ useHandCursor: true });
-        const img = this.add.image(cx, cy - 50, ship.texture).setScale(ship.id === "dreadnought" ? 2.1 : 3.2);
+        // Ship only inside the block
+        const img = this.add.image(cx, cy, ship.texture);
+        const fitH = panelH * 0.72;
+        img.setScale(Math.min(ship.id === "dreadnought" ? 1.6 : 2.4, fitH / Math.max(1, img.height)));
+
+        // Name / blurb / status UNDER the block (readable, no overlap)
+        const underY = cy + panelH / 2 + uiPx(18);
         const title = this.add
-          .text(cx, cy + 40, ship.name, {
+          .text(cx, underY, ship.name, {
             fontFamily: "Courier New, monospace",
-            fontSize: "18px",
+            fontSize: `${uiPx(18)}px`,
             color: "#e8eef8",
           })
           .setOrigin(0.5);
         const blurb = this.add
-          .text(cx, cy + 72, ship.blurb, {
+          .text(cx, underY + uiPx(24), ship.blurb, {
             fontFamily: "Courier New, monospace",
-            fontSize: "13px",
+            fontSize: `${uiPx(12)}px`,
             color: "#8899aa",
             align: "center",
           })
           .setOrigin(0.5);
         const mark = this.add
-          .text(cx, cy + 110, "", {
+          .text(cx, underY + uiPx(48), "", {
             fontFamily: "Courier New, monospace",
-            fontSize: "14px",
+            fontSize: `${uiPx(13)}px`,
             color: "#66ffaa",
           })
           .setOrigin(0.5);
@@ -663,19 +931,16 @@
 
       this.refresh();
 
-      const back = this.add
-        .text(W / 2, 500, "[ BACK ]", {
-          fontFamily: "Courier New, monospace",
-          fontSize: "20px",
-          color: "#7ec8ff",
-        })
-        .setOrigin(0.5)
-        .setInteractive({ useHandCursor: true });
-      back.on("pointerdown", () => {
-        SFX.ui();
-        this.scene.start("Menu");
-      });
+      new MenuButtonList(
+        this,
+        [{ text: "BACK", onClick: () => this.scene.start("Menu") }],
+        { top: Math.min(H - menuBtnHeight() - uiPx(28), uiPx(520)) }
+      );
       this.input.keyboard.on("keydown-ESC", () => this.scene.start("Menu"));
+    }
+
+    update(_, dtMs) {
+      if (this.stars) this.stars.update(dtMs / 1000, 0.35);
     }
 
     refresh() {
@@ -728,18 +993,11 @@
           .setOrigin(0.5);
       });
 
-      const back = this.add
-        .text(W / 2, 480, "[ BACK ]", {
-          fontFamily: "Courier New, monospace",
-          fontSize: "20px",
-          color: "#7ec8ff",
-        })
-        .setOrigin(0.5)
-        .setInteractive({ useHandCursor: true });
-      back.on("pointerdown", () => {
-        SFX.ui();
-        this.scene.start("Menu");
-      });
+      new MenuButtonList(
+        this,
+        [{ text: "BACK", onClick: () => this.scene.start("Menu") }],
+        { top: Math.min(H - menuBtnHeight() - uiPx(24), uiPx(500)) }
+      );
       this.input.keyboard.on("keydown-ESC", () => this.scene.start("Menu"));
     }
   }
@@ -872,15 +1130,11 @@
         SFX.ui();
       });
 
-      const back = this.add
-        .text(W / 2, 500, "[ BACK ]", {
-          fontFamily: "Courier New, monospace",
-          fontSize: "20px",
-          color: "#7ec8ff",
-        })
-        .setOrigin(0.5)
-        .setInteractive({ useHandCursor: true });
-      back.on("pointerdown", () => this.scene.start("Menu"));
+      new MenuButtonList(
+        this,
+        [{ text: "BACK", onClick: () => this.scene.start("Menu") }],
+        { top: Math.min(H - menuBtnHeight() - uiPx(24), uiPx(500)) }
+      );
       this.input.keyboard.on("keydown-ESC", () => this.scene.start("Menu"));
     }
     refresh() {
@@ -956,7 +1210,7 @@
       this.enemies = this.physics.add.group();
       this.pickups = this.physics.add.group();
       this.playerLasers = this.physics.add.group({
-        defaultKey: "laser",
+        defaultKey: "player_laser",
         maxSize: 120,
         classType: Phaser.Physics.Arcade.Image,
       });
@@ -968,21 +1222,21 @@
       this.particles = this.add.group();
 
       this.ship = getSelectedShip();
-      this.player = this.physics.add.sprite(W / 2, H - 80, this.ship.texture);
+      // Temporary Y; corrected after HUD so ship starts above the bottom panel
+      this.player = this.physics.add.sprite(W / 2, H * 0.62, this.ship.texture);
       fitSprite(this.player, this.ship.texture === "player_dread" ? "player_dread" : "player");
       this.player.setCollideWorldBounds(true);
-      const bw = this.ship.bodyW;
-      const bh = this.ship.bodyH;
-      this.player.body.setSize(bw, bh);
-      this.player.body.setOffset(
-        (this.player.width - bw) / 2,
-        (this.player.height - bh) / 2
-      );
+      syncArcadeBody(this.player, this.ship.bodyW, this.ship.bodyH);
       this.player.setDepth(5);
       // Fixed forward orientation — never rotate toward mouse
       this.player.setAngle(0);
       if (this.ship.texture === "player" && this.anims.exists("player_fly")) {
         this.player.play("player_fly");
+        this.syncPlayerHullAnchor();
+        this.player.on("animationupdate", () => this.syncPlayerHullAnchor());
+      } else if (this.ship.texture === "player_dread") {
+        // Dread art is tall — keep a hull-centered body after scale
+        syncArcadeBody(this.player, this.ship.bodyW, this.ship.bodyH);
       }
 
       this.crosshair = fitSprite(
@@ -1037,6 +1291,8 @@
       this.physics.add.overlap(this.player, this.pickups, this.onPickupCollect, null, this);
 
       this.buildHud();
+      this.updateHud();
+      this.applyPlayfieldBounds({ placeShip: true });
       this.pauseLayer = null;
       this.gameOverLayer = null;
       this._pauseAt = 0;
@@ -1048,7 +1304,14 @@
 
       // Test start: one stronger helper already joined
       if (TEST_START_HELPER) {
-        this.recruitAlly(this.player.x - 48, this.player.y + 10);
+        const n = Math.min(MAX_ALLIES, Math.max(1, TEST_START_HELPER_COUNT));
+        for (let i = 0; i < n; i++) {
+          const ang = (Math.PI * 2 * i) / n;
+          this.recruitAlly(
+            this.player.x + Math.cos(ang) * 56,
+            this.player.y + Math.sin(ang) * 56
+          );
+        }
       }
     }
 
@@ -1213,112 +1476,338 @@
 
     buildHud() {
       // Push HUD down on tablets so HP isn't covered by the site header in landscape
-      const top = this.isTouchPlay() ? 58 : 16;
+      const top = this.isTouchPlay() ? uiPx(52) : uiPx(14);
+      const pad = uiPx(14);
       this.hud = this.add.container(0, 0).setDepth(40);
-      this.hpBarBg = this.add.rectangle(16, top, 160, 14, 0x222233).setOrigin(0, 0);
-      this.hpBar = this.add.rectangle(16, top, 160, 14, 0x44cc66).setOrigin(0, 0);
-      this.hpText = this.add.text(20, top - 2, "HP 100", {
-        fontFamily: "Courier New, monospace",
-        fontSize: "12px",
-        color: "#ffffff",
-      });
-      this.scoreText = this.add.text(W - 16, top - 2, "SCORE 0", {
-        fontFamily: "Courier New, monospace",
-        fontSize: "14px",
-        color: "#7ec8ff",
-      }).setOrigin(1, 0);
-      this.infoText = this.add.text(16, top + 20, "", {
-        fontFamily: "Courier New, monospace",
-        fontSize: "12px",
-        color: "#a0b0c8",
-      });
-      this.buffText = this.add.text(16, top + 38, "", {
-        fontFamily: "Courier New, monospace",
-        fontSize: "12px",
-        color: "#88ddff",
-      });
-      this.superBg = this.add.rectangle(W / 2 - 120, H - 18, 200, 10, 0x222233).setOrigin(0.5);
-      this.superBar = this.add.rectangle(W / 2 - 220, H - 18, 200, 10, 0x44aaff).setOrigin(0, 0.5);
-      this.superText = this.add
-        .text(W / 2 - 120, H - 32, "SUPERLASER READY", {
-          fontFamily: "Courier New, monospace",
-          fontSize: "11px",
-          color: "#ffcc44",
-        })
-        .setOrigin(0.5);
 
-      this.magBg = this.add.rectangle(W / 2 + 120, H - 18, 200, 10, 0x222233).setOrigin(0.5);
-      this.magBar = this.add.rectangle(W / 2 + 20, H - 18, 200, 10, 0xcc66ff).setOrigin(0, 0.5);
-      this.magText = this.add
-        .text(W / 2 + 120, H - 32, "MAGNETIC READY", {
-          fontFamily: "Courier New, monospace",
-          fontSize: "11px",
-          color: "#ddaaff",
-        })
-        .setOrigin(0.5);
+      const hasPanels =
+        this.textures.exists("hud_hp_frame") &&
+        this.textures.exists("hud_hp_fill") &&
+        this.textures.exists("hud_ability_panel");
 
-      this.hud.add([
-        this.hpBarBg,
-        this.hpBar,
-        this.hpText,
-        this.scoreText,
-        this.infoText,
-        this.buffText,
-        this.superBg,
-        this.superBar,
-        this.superText,
-        this.magBg,
-        this.magBar,
-        this.magText,
-      ]);
+      if (hasPanels) {
+        // Exact trough size; progress via mask width (never scale/squash the fill art)
+        const fitInSlot = (img, slotX, slotY, slotW, slotH) => {
+          img.setOrigin(0, 0);
+          if (img.isCropped) img.isCropped = false;
+          img.clearMask(true);
+          img.setPosition(slotX, slotY);
+          img.setDisplaySize(slotW, slotH);
+          const maskG = this.make.graphics({ x: 0, y: 0, add: false });
+          maskG.fillStyle(0xffffff, 1);
+          maskG.fillRect(slotX, slotY, slotW, slotH);
+          img.setMask(maskG.createGeometryMask());
+          return { w: slotW, h: slotH, slotX, slotY, maskG };
+        };
+
+        // Compact HUD panels
+        const hpTargetW = uiPx(168);
+        this.hudHpFrame = this.add.image(pad, top, "hud_hp_frame").setOrigin(0, 0);
+        this.hudHpFrame.setScale(hpTargetW / this.hudHpFrame.width);
+        const fw = this.hudHpFrame.displayWidth;
+        const fh = this.hudHpFrame.displayHeight;
+        // After HP label, clear of tip chrome — stay inside frame
+        const hpSlotX = pad + fw * 0.22;
+        const hpSlotY = top + fh * 0.40;
+        const hpSlotW = fw * 0.70;
+        const hpSlotH = fh * 0.26;
+        this.hudHpFill = this.add.image(0, 0, "hud_hp_fill");
+        this._hudHpFillScale = fitInSlot(this.hudHpFill, hpSlotX, hpSlotY, hpSlotW, hpSlotH);
+
+        // Number sits in the left head of the HP frame (not over the fill track)
+        this.hpText = this.add
+          .text(pad + fw * 0.11, top + fh * 0.50, "100", {
+            fontFamily: "Courier New, monospace",
+            fontSize: `${uiPx(11)}px`,
+            color: "#ffffff",
+            stroke: "#001122",
+            strokeThickness: 2,
+          })
+          .setOrigin(0.5);
+
+        const abTargetW = uiPx(250);
+        this.hudAbility = this.add
+          .image(W / 2, H - uiPx(10), "hud_ability_panel")
+          .setOrigin(0.5, 1);
+        this.hudAbility.setScale(abTargetW / this.hudAbility.width);
+        const panelLeft = W / 2 - this.hudAbility.displayWidth / 2;
+        const panelTop = H - uiPx(10) - this.hudAbility.displayHeight;
+        const pw = this.hudAbility.displayWidth;
+        const ph = this.hudAbility.displayHeight;
+
+        // Neon troughs with a hard center gap (panel end-caps meet; fills must not)
+        const magSlot = {
+          x: panelLeft + pw * 0.088,
+          y: panelTop + ph * 0.57,
+          w: pw * 0.385,
+          h: ph * 0.185,
+        };
+        const superSlot = {
+          x: panelLeft + pw * 0.527,
+          y: panelTop + ph * 0.57,
+          w: pw * 0.385,
+          h: ph * 0.185,
+        };
+
+        this.hudMagFill = this.add.image(0, 0, "hud_mag_fill");
+        this.hudSuperFill = this.add.image(0, 0, "hud_super_fill");
+        this._hudMagFillScale = fitInSlot(this.hudMagFill, magSlot.x, magSlot.y, magSlot.w, magSlot.h);
+        this._hudSuperFillScale = fitInSlot(
+          this.hudSuperFill,
+          superSlot.x,
+          superSlot.y,
+          superSlot.w,
+          superSlot.h
+        );
+
+        // Status centered on the fill — white
+        this.superText = this.add
+          .text(superSlot.x + superSlot.w / 2, superSlot.y + superSlot.h / 2, "", {
+            fontFamily: "Courier New, monospace",
+            fontSize: `${uiPx(10)}px`,
+            color: "#ffffff",
+            stroke: "#000000",
+            strokeThickness: 3,
+          })
+          .setOrigin(0.5);
+        this.magText = this.add
+          .text(magSlot.x + magSlot.w / 2, magSlot.y + magSlot.h / 2, "", {
+            fontFamily: "Courier New, monospace",
+            fontSize: `${uiPx(10)}px`,
+            color: "#ffffff",
+            stroke: "#000000",
+            strokeThickness: 3,
+          })
+          .setOrigin(0.5);
+
+        // Mode label in the center gap above the two ability bars
+        this.modeText = this.add
+          .text(W / 2, panelTop + ph * 0.24, this.mode === "flight" ? "FLIGHT" : "FIGHT", {
+            fontFamily: "Courier New, monospace",
+            fontSize: `${uiPx(11)}px`,
+            color: "#7ec8ff",
+            stroke: "#001018",
+            strokeThickness: 3,
+          })
+          .setOrigin(0.5);
+
+        const infoY = top + fh + uiPx(6);
+        this.scoreText = this.add
+          .text(W - pad, top + uiPx(6), "SCORE 0", {
+            fontFamily: "Courier New, monospace",
+            fontSize: `${uiPx(16)}px`,
+            color: "#7ec8ff",
+          })
+          .setOrigin(1, 0);
+        this.infoText = this.add.text(pad, infoY, "", {
+          fontFamily: "Courier New, monospace",
+          fontSize: `${uiPx(13)}px`,
+          color: "#a0b0c8",
+        });
+        this.buffText = this.add.text(pad, infoY + uiPx(18), "", {
+          fontFamily: "Courier New, monospace",
+          fontSize: `${uiPx(13)}px`,
+          color: "#88ddff",
+        });
+
+        // Frames, then fills inside troughs, then labels
+        this.hud.add([
+          this.hudHpFrame,
+          this.hudAbility,
+          this.hudHpFill,
+          this.hudMagFill,
+          this.hudSuperFill,
+          this.hpText,
+          this.magText,
+          this.superText,
+          this.modeText,
+          this.scoreText,
+          this.infoText,
+          this.buffText,
+        ]);
+      } else {
+        // Fallback rectangles if panel art missing
+        const hpW = uiPx(200);
+        const barW = uiPx(240);
+        this._hudHpW = hpW;
+        this._hudBarW = barW;
+        this.hpBarBg = this.add.rectangle(pad, top, hpW, uiPx(18), 0x222233).setOrigin(0, 0);
+        this.hpBar = this.add.rectangle(pad, top, hpW, uiPx(18), 0x44cc66).setOrigin(0, 0);
+        this.hpText = this.add.text(pad + uiPx(6), top - uiPx(2), "HP 100", {
+          fontFamily: "Courier New, monospace",
+          fontSize: `${uiPx(16)}px`,
+          color: "#ffffff",
+        });
+        this.scoreText = this.add
+          .text(W - pad, top - uiPx(2), "SCORE 0", {
+            fontFamily: "Courier New, monospace",
+            fontSize: `${uiPx(18)}px`,
+            color: "#7ec8ff",
+          })
+          .setOrigin(1, 0);
+        this.infoText = this.add.text(pad, top + uiPx(26), "", {
+          fontFamily: "Courier New, monospace",
+          fontSize: `${uiPx(15)}px`,
+          color: "#a0b0c8",
+        });
+        this.buffText = this.add.text(pad, top + uiPx(48), "", {
+          fontFamily: "Courier New, monospace",
+          fontSize: `${uiPx(15)}px`,
+          color: "#88ddff",
+        });
+        const botY = H - uiPx(22);
+        this.superBg = this.add.rectangle(W / 2 - uiPx(140), botY, barW, uiPx(14), 0x222233).setOrigin(0.5);
+        this.superBar = this.add
+          .rectangle(W / 2 - uiPx(140) - barW / 2, botY, barW, uiPx(14), 0x44aaff)
+          .setOrigin(0, 0.5);
+        this.superText = this.add
+          .text(W / 2 - uiPx(140), H - uiPx(40), "SUPERLASER READY", {
+            fontFamily: "Courier New, monospace",
+            fontSize: `${uiPx(14)}px`,
+            color: "#ffcc44",
+          })
+          .setOrigin(0.5);
+        this.magBg = this.add.rectangle(W / 2 + uiPx(140), botY, barW, uiPx(14), 0x222233).setOrigin(0.5);
+        this.magBar = this.add
+          .rectangle(W / 2 + uiPx(140) - barW / 2, botY, barW, uiPx(14), 0xcc66ff)
+          .setOrigin(0, 0.5);
+        this.magText = this.add
+          .text(W / 2 + uiPx(140), H - uiPx(40), "MAGNETIC READY", {
+            fontFamily: "Courier New, monospace",
+            fontSize: `${uiPx(14)}px`,
+            color: "#ddaaff",
+          })
+          .setOrigin(0.5);
+        this.hud.add([
+          this.hpBarBg,
+          this.hpBar,
+          this.hpText,
+          this.scoreText,
+          this.infoText,
+          this.buffText,
+          this.superBg,
+          this.superBar,
+          this.superText,
+          this.magBg,
+          this.magBar,
+          this.magText,
+        ]);
+      }
+    }
+
+    /** Keep the ship above the bottom ability panel (spawn + world bounds). */
+    applyPlayfieldBounds(opts = {}) {
+      const placeShip = !!opts.placeShip;
+      // Full screen — no invisible side/bottom walls
+      this.physics.world.setBounds(0, 0, W, H);
+      this._playBottom = H;
+      if (this.player && placeShip) {
+        // Spawn above the HUD panel; player can still fly to edges afterward
+        let spawnY = H - uiPx(140);
+        if (this.hudAbility) {
+          const panelTop =
+            this.hudAbility.y - this.hudAbility.displayHeight * this.hudAbility.originY;
+          spawnY = panelTop - uiPx(56);
+        }
+        this.player.setPosition(W / 2, spawnY);
+      }
+    }
+
+    /**
+     * player_thrust is taller (engine flame). Keep hull locked by anchoring
+     * origin to a fixed pixel from the top of the texture (same in both frames).
+     */
+    syncPlayerHullAnchor() {
+      if (!this.player || !this.ship || this.ship.texture !== "player") return;
+      const frameH = this.player.frame.height;
+      if (!frameH) return;
+      // Visual center of the metal hull in player.png (tops of both frames align)
+      const HULL_ANCHOR_Y = 42;
+      this.player.setOrigin(0.5, HULL_ANCHOR_Y / frameH);
+      // Keep scale based on idle frame so thrust doesn't resize the hull
+      const idleH = this.textures.get("player").getSourceImage().height || frameH;
+      this.player.setScale(Math.min(1, (SPRITE_H.player || 64) / idleH));
+      const bw = this.ship.bodyW;
+      const bh = this.ship.bodyH;
+      this.player.body.setSize(bw, bh);
+      this.player.body.setOffset((this.player.width - bw) / 2, HULL_ANCHOR_Y - bh / 2);
+    }
+
+    _setHudFillPct(img, fullSize, pct) {
+      if (!img || !fullSize) return;
+      const p = Phaser.Math.Clamp(pct, 0, 1);
+      // Keep full-size art; reveal by shrinking the mask from the right
+      img.setDisplaySize(fullSize.w, fullSize.h);
+      img.setPosition(fullSize.slotX, fullSize.slotY);
+      if (img.isCropped) img.isCropped = false;
+      if (fullSize.maskG) {
+        const g = fullSize.maskG;
+        g.clear();
+        g.fillStyle(0xffffff, 1);
+        const mw = fullSize.w * p;
+        if (mw > 0.5) g.fillRect(fullSize.slotX, fullSize.slotY, mw, fullSize.h);
+      }
+      img.setVisible(p > 0.01);
     }
 
     updateHud() {
       const pct = Phaser.Math.Clamp(this.hp / PLAYER_MAX_HP, 0, 1);
-      this.hpBar.width = 160 * pct;
-      this.hpBar.fillColor = pct > 0.5 ? 0x44cc66 : pct > 0.25 ? 0xccaa33 : 0xcc3344;
-      this.hpText.setText(`HP ${Math.max(0, Math.round(this.hp))}`);
+      if (this.hudHpFill) {
+        this._setHudFillPct(this.hudHpFill, this._hudHpFillScale, pct);
+      } else if (this.hpBar) {
+        this.hpBar.width = (this._hudHpW || 200) * pct;
+        this.hpBar.fillColor = pct > 0.5 ? 0x44cc66 : pct > 0.25 ? 0xccaa33 : 0xcc3344;
+      }
+      if (this.hpText) this.hpText.setText(`${Math.max(0, Math.round(this.hp))}`);
       this.scoreText.setText(`SCORE ${Math.floor(this.score)}`);
 
       const now = this.time.now;
+      const barW = this._hudBarW || 240;
       const left = Math.max(0, this.superReadyAt - now);
+      let superPct = 1;
       if (left <= 0) {
-        this.superBar.width = 200;
-        this.superBar.fillColor = 0x44ff88;
-        this.superText.setText("SUPERLASER [SPACE]");
-        this.superText.setColor("#44ff88");
+        this.superText.setText("READY [SPACE]");
       } else {
-        const readyPct = 1 - left / SUPER_COOLDOWN_MS;
-        this.superBar.width = 200 * readyPct;
-        this.superBar.fillColor = 0x4488cc;
-        this.superText.setText(`SUPERLASER ${Math.ceil(left / 1000)}s`);
-        this.superText.setColor("#8899aa");
+        superPct = 1 - left / SUPER_COOLDOWN_MS;
+        this.superText.setText(`${Math.ceil(left / 1000)}s`);
+      }
+      this.superText.setColor("#ffffff");
+      if (this.hudSuperFill) {
+        this._setHudFillPct(this.hudSuperFill, this._hudSuperFillScale, superPct);
+      } else if (this.superBar) {
+        this.superBar.width = barW * superPct;
+        this.superBar.fillColor = left <= 0 ? 0x44ff88 : 0x4488cc;
       }
 
+      // Charge empties the moment cooldown starts (on click), then refills over time
       const magLeft = Math.max(0, this.magneticReadyAt - now);
+      let magPct = 1;
+      if (MAGNETIC_COOLDOWN_MS > 0 && magLeft > 0) {
+        magPct = 1 - magLeft / MAGNETIC_COOLDOWN_MS;
+      }
       if (this.magneticActive) {
-        this.magBar.width = 200;
-        this.magBar.fillColor = 0xff66ee;
-        this.magText.setText("MAGNETIC BLAST!");
-        this.magText.setColor("#ff99ff");
-      } else if (MAGNETIC_COOLDOWN_MS <= 0 || magLeft <= 0) {
-        this.magBar.width = 200;
-        this.magBar.fillColor = 0xdd66ff;
-        this.magText.setText("MAGNETIC [SHIFT]");
-        this.magText.setColor("#eeaaff");
+        this.magText.setText("ACTIVE!");
+      } else if (magLeft <= 0) {
+        this.magText.setText("READY [SHIFT]");
       } else {
-        const readyPct = 1 - magLeft / MAGNETIC_COOLDOWN_MS;
-        this.magBar.width = 200 * readyPct;
-        this.magBar.fillColor = 0x7744aa;
-        this.magText.setText(`MAGNETIC ${Math.ceil(magLeft / 1000)}s`);
-        this.magText.setColor("#9988aa");
+        this.magText.setText(`${Math.ceil(magLeft / 1000)}s`);
+      }
+      this.magText.setColor("#ffffff");
+      if (this.hudMagFill) {
+        this._setHudFillPct(this.hudMagFill, this._hudMagFillScale, magPct);
+      } else if (this.magBar) {
+        this.magBar.width = barW * magPct;
+        this.magBar.fillColor = this.magneticActive ? 0xff66ee : magLeft <= 0 ? 0xdd66ff : 0x7744aa;
       }
 
+      if (this.modeText) {
+        this.modeText.setText(this.mode === "flight" ? "FLIGHT" : "FIGHT");
+      }
       if (this.mode === "flight") {
         const sec = (this.survivalMs / 1000).toFixed(1);
-        this.infoText.setText(`TIME ${sec}s   DIST ${formatDistance(this.distance)}   FLIGHT`);
+        this.infoText.setText(`TIME ${sec}s   DIST ${formatDistance(this.distance)}`);
       } else {
-        this.infoText.setText(`KILLS ${this.kills}   WAVE ${this.wave}   FIGHT`);
+        this.infoText.setText(`KILLS ${this.kills}   WAVE ${this.wave}`);
       }
 
       const buffs = [];
@@ -1371,7 +1860,7 @@
         vy = this.touchMove.y;
       }
 
-      const speed = (this.ship && this.ship.speed) || 260;
+      const speed = spd((this.ship && this.ship.speed) || 260);
       if (vx !== 0 || vy !== 0) {
         const len = Math.hypot(vx, vy);
         vx = (vx / len) * speed;
@@ -1463,7 +1952,7 @@
     }
 
     fireLaserShot(x, y, angle, dmg, tint, texKey) {
-      const key = texKey || "laser";
+      const key = texKey || "player_laser";
       let laser = this.playerLasers.get();
       if (!laser) {
         const extra = this.physics.add.image(x, y, key);
@@ -1485,15 +1974,21 @@
       laser.clearTint();
       if (tint != null) laser.setTint(tint);
       laser.setPosition(x, y);
-      laser.setRotation(angle + Math.PI / 2);
+      // player_laser / dread_shot face +X; legacy vertical "laser" faces +Y
+      const tipRight = !texKey || texKey === "player_laser" || texKey === "dread_shot";
+      laser.setRotation(tipRight ? angle : angle + Math.PI / 2);
       laser._dmg = dmg || 12;
       laser._fromAlly = false;
-      fitSprite(laser, texKey || "laser");
+      fitSprite(laser, texKey || "player_laser");
 
       if (laser.body) {
         laser.body.enable = true;
+        // Re-bind hitbox to current texture (pool may reuse player_laser → dread_shot).
+        // Use a stable on-screen hit size so small scaled bolts still overlap.
+        const hit = Math.max(14, Math.min(28, (laser.displayWidth + laser.displayHeight) * 0.55));
+        syncArcadeBody(laser, null, null, hit);
         laser.body.reset(x, y);
-        const shotSpeed = (this.ship && this.ship.shotSpeed) || 560;
+        const shotSpeed = spd((this.ship && this.ship.shotSpeed) || 560);
         this.physics.velocityFromRotation(angle, shotSpeed, laser.body.velocity);
       }
 
@@ -1569,8 +2064,8 @@
       const tipKey = this.textures.exists("superbeam_tip") ? "superbeam_tip" : "fx_superbeam";
       const bodyImg = this.textures.get(bodyKey).getSourceImage();
       const bodyNativeH = Math.max(24, (bodyImg && bodyImg.height) || 48);
-      const bodyDisplayH = 56;
-      const bodyScale = bodyDisplayH / bodyNativeH;
+      const bodyDisplayH = 88;
+      const bodyScale = Math.min(1, bodyDisplayH / bodyNativeH);
       const bodyStep = bodyDisplayH * 0.78;
       for (let d = 28; d < dist - 40; d += bodyStep) {
         const seg = this.add
@@ -1638,8 +2133,14 @@
       if (this.ended || this.pausedGame || this.magneticActive) return;
       if (this.time.now < this.magneticReadyAt) return;
 
+      // Spend charge immediately — bar empties before blast FX
+      this.magneticReadyAt = this.time.now + MAGNETIC_COOLDOWN_MS;
       this.magneticActive = true;
       this.magneticUntil = this.time.now + MAGNETIC_DURATION_MS;
+      if (this.hudMagFill && this._hudMagFillScale) {
+        this._setHudFillPct(this.hudMagFill, this._hudMagFillScale, 0);
+      }
+      this.updateHud();
       if (this.textures.exists("fx_magnetic")) {
         const burst = this.add.image(this.player.x, this.player.y, "fx_magnetic").setDepth(8);
         burst.setScale(0.9);
@@ -1652,7 +2153,6 @@
         });
       }
       this.magneticRadius = 1200;
-      this.magneticReadyAt = this.time.now + MAGNETIC_COOLDOWN_MS;
       this._magneticHit = new Set();
       this.shake = 16;
       this.cameras.main.flash(140, 180, 80, 255);
@@ -1734,8 +2234,8 @@
       const item = this.pickups.create(x, -30, key);
       if (!item) return;
       this.stylePickup(item, kind);
-      const speed = Phaser.Math.Between(55, 85);
-      item.setVelocity(Phaser.Math.Between(-20, 20), speed);
+      const speed = spd(Phaser.Math.Between(55, 85));
+      item.setVelocity(spd(Phaser.Math.Between(-20, 20)), speed);
     }
 
     stylePickup(item, kind) {
@@ -2085,9 +2585,10 @@
         }
 
         const ang = (Math.PI * 2 * i) / n + now / 900;
-        const radius = 34 + n * 5;
+        // Keep helpers off the player hull (HD art fills more of the sprite box)
+        const radius = spd(48 + n * 6);
         const tx = this.player.x + Math.cos(ang) * radius;
-        const ty = this.player.y + Math.sin(ang) * radius + 4;
+        const ty = this.player.y + Math.sin(ang) * radius + spd(4);
         ally.sprite.x += (tx - ally.sprite.x) * 0.22;
         ally.sprite.y += (ty - ally.sprite.y) * 0.22;
 
@@ -2241,8 +2742,8 @@
         return;
       }
       const boom = this.add.image(x, y, key).setDepth(9);
-      const targetH = size === "lg" ? 72 : size === "md" ? 48 : 32;
-      boom.setScale(targetH / Math.max(1, boom.height));
+      const targetH = size === "lg" ? 96 : size === "md" ? 68 : 48;
+      boom.setScale(Math.min(1, targetH / Math.max(1, boom.height)));
       this.tweens.add({
         targets: boom,
         alpha: 0,
@@ -2340,9 +2841,10 @@
 
     onPlayerHitObstacle(player, obs) {
       if (!obs.active || this.ended) return;
-      // Only damage once per invuln window; skip tiny grazing on huge bodies
+      // Only damage once per invuln window; use visual size so HD planets still hurt
       const dist = Phaser.Math.Distance.Between(player.x, player.y, obs.x, obs.y);
-      const hitR = (obs._radius || 16) + 10;
+      const visualR = Math.max(obs.displayWidth || 0, obs.displayHeight || 0) * 0.32;
+      const hitR = Math.max(obs._radius || 16, visualR) + 12;
       if (dist > hitR) return;
       this.damagePlayer(obs._touchDmg || 15);
       if (!obs._indestructible && obs._hp != null) {
@@ -2364,21 +2866,28 @@
       const bolt = this.enemyLasers.create(enemy.x + ox, enemy.y + oy, tex);
       if (!bolt) return null;
       bolt.setDepth(3);
-      if (options.displayH && bolt.height) {
-        bolt.setScale(options.displayH / bolt.height);
+      if (options.displayH && bolt.frame && bolt.frame.height) {
+        // Absolute on-screen height (ignore prior scale / padding)
+        const scale = options.displayH / bolt.frame.height;
+        bolt.setScale(scale);
       } else {
         fitSprite(bolt, tex);
+      }
+      if (bolt.body) {
+        const hit = Math.max(12, Math.min(26, (bolt.displayWidth + bolt.displayHeight) * 0.55));
+        syncArcadeBody(bolt, null, null, hit);
+        bolt.body.reset(enemy.x + ox, enemy.y + oy);
       }
       bolt._dmg = dmg || 8;
       bolt._homing = !!options.homing;
       bolt._homingTurn = options.homingTurn || 0.05;
-      bolt._speed = speed;
+      bolt._speed = spd(speed * ENEMY_SHOT_SPEED_MULT);
       const angle = Phaser.Math.Angle.Between(enemy.x, enemy.y, this.player.x, this.player.y);
       // Slight inaccuracy so player can dodge (missiles lock tighter)
       const jitter = options.homing
         ? Phaser.Math.FloatBetween(-0.06, 0.06)
         : Phaser.Math.FloatBetween(-0.18, 0.18);
-      this.physics.velocityFromRotation(angle + jitter, speed, bolt.body.velocity);
+      this.physics.velocityFromRotation(angle + jitter, bolt._speed, bolt.body.velocity);
       bolt.rotation = angle + Math.PI / 2;
       if (!options.silent) SFX.enemyLaser();
       this.time.delayedCall(options.lifeMs || 2500, () => {
@@ -2394,7 +2903,7 @@
         const desired = Phaser.Math.Angle.Between(bolt.x, bolt.y, this.player.x, this.player.y);
         const cur = Math.atan2(bolt.body.velocity.y, bolt.body.velocity.x);
         const next = Phaser.Math.Angle.RotateTo(cur, desired, bolt._homingTurn || 0.05);
-        this.physics.velocityFromRotation(next, bolt._speed || 180, bolt.body.velocity);
+        this.physics.velocityFromRotation(next, bolt._speed || spd(180), bolt.body.velocity);
         bolt.rotation = next + Math.PI / 2;
       });
     }
@@ -2422,44 +2931,38 @@
         .rectangle(gw / 2, gh / 2, gw + 4, gh + 4, 0x000000, 0.65)
         .setScrollFactor(0);
       const title = this.add
-        .text(gw / 2, Math.max(100, gh * 0.28), "PAUSED", {
+        .text(gw / 2, Math.max(uiPx(100), gh * 0.26), "PAUSED", {
           fontFamily: "Courier New, monospace",
-          fontSize: "36px",
+          fontSize: `${uiPx(40)}px`,
           color: "#7ec8ff",
         })
         .setOrigin(0.5)
         .setScrollFactor(0);
 
-      const mk = (y, label, fn) => {
-        const t = this.add
-          .text(gw / 2, y, label, {
-            fontFamily: "Courier New, monospace",
-            fontSize: "22px",
-            color: "#e8eef8",
-            backgroundColor: "#122038",
-            padding: { x: 16, y: 8 },
-          })
-          .setOrigin(0.5)
-          .setScrollFactor(0)
-          .setInteractive({ useHandCursor: true });
-        t.on("pointerover", () => t.setStyle({ color: "#7ec8ff" }));
-        t.on("pointerout", () => t.setStyle({ color: "#e8eef8" }));
-        t.on("pointerdown", fn);
-        return t;
-      };
-
-      this.pauseLayer.add([
-        dim,
-        title,
-        mk(Math.min(gh - 200, gh * 0.44), "RESUME", () => this.resumePlay()),
-        mk(Math.min(gh - 140, gh * 0.56), "RESTART", () => {
-          this.scene.restart({ mode: this.mode });
-        }),
-        mk(Math.min(gh - 80, gh * 0.68), "MAIN MENU", () => {
-          document.body.classList.add("menu-cursor");
-          this.scene.start("Menu");
-        }),
-      ]);
+      this.pauseLayer.add([dim, title]);
+      this.pauseButtons = new MenuButtonList(
+        this,
+        [
+          { text: "RESUME", onClick: () => this.resumePlay() },
+          {
+            text: "RESTART",
+            onClick: () => this.scene.restart({ mode: this.mode }),
+          },
+          {
+            text: "MAIN MENU",
+            onClick: () => {
+              document.body.classList.add("menu-cursor");
+              this.scene.start("Menu");
+            },
+          },
+        ],
+        {
+          x: gw / 2,
+          centerY: Math.min(gh - uiPx(160), gh * 0.55),
+          depth: 101,
+          scrollFactor: 0,
+        }
+      ).addTo(this.pauseLayer);
     }
 
     resumePlay() {
@@ -2518,9 +3021,9 @@
         .rectangle(gw / 2, gh / 2, gw + 4, gh + 4, 0x000000, 0.78)
         .setScrollFactor(0);
       const title = this.add
-        .text(gw / 2, Math.max(80, gh * 0.22), "GAME OVER", {
+        .text(gw / 2, Math.max(uiPx(80), gh * 0.2), "GAME OVER", {
           fontFamily: "Courier New, monospace",
-          fontSize: "40px",
+          fontSize: `${uiPx(44)}px`,
           color: "#ff6688",
         })
         .setOrigin(0.5)
@@ -2528,13 +3031,13 @@
       const stats = this.add
         .text(
           gw / 2,
-          Math.max(150, gh * 0.36),
+          Math.max(uiPx(150), gh * 0.34),
           `SCORE ${finalScore}\nTIME ${sec}s\nBEST ${Math.floor(best)}${
             this.mode === "fight" ? `\nKILLS ${this.kills}` : `\nDIST ${formatDistance(this.distance)}`
           }`,
           {
             fontFamily: "Courier New, monospace",
-            fontSize: "18px",
+            fontSize: `${uiPx(20)}px`,
             color: "#c8d4e8",
             align: "center",
           }
@@ -2542,29 +3045,23 @@
         .setOrigin(0.5)
         .setScrollFactor(0);
 
-      const mk = (y, label, fn) => {
-        const t = this.add
-          .text(gw / 2, y, label, {
-            fontFamily: "Courier New, monospace",
-            fontSize: "22px",
-            color: "#e8eef8",
-            backgroundColor: "#122038",
-            padding: { x: 16, y: 8 },
-          })
-          .setOrigin(0.5)
-          .setScrollFactor(0)
-          .setInteractive({ useHandCursor: true });
-        t.on("pointerdown", fn);
-        return t;
-      };
-
-      this.gameOverLayer.add([
-        dim,
-        title,
-        stats,
-        mk(Math.min(gh - 140, gh * 0.62), "RESTART", () => this.scene.restart({ mode: this.mode })),
-        mk(Math.min(gh - 80, gh * 0.74), "MAIN MENU", () => this.scene.start("Menu")),
-      ]);
+      this.gameOverLayer.add([dim, title, stats]);
+      this.gameOverButtons = new MenuButtonList(
+        this,
+        [
+          {
+            text: "RESTART",
+            onClick: () => this.scene.restart({ mode: this.mode }),
+          },
+          { text: "MAIN MENU", onClick: () => this.scene.start("Menu") },
+        ],
+        {
+          x: gw / 2,
+          centerY: Math.min(gh - uiPx(120), gh * 0.68),
+          depth: 111,
+          scrollFactor: 0,
+        }
+      ).addTo(this.gameOverLayer);
     }
 
     cleanupOffscreen() {
@@ -2678,14 +3175,13 @@
         : Phaser.Math.Between(Math.max(60, radius + 40), W - Math.max(60, radius + 40));
       const o = this.obstacles.create(x, -40, key);
       fitSprite(o, key);
-      o.setVelocity(0, speed);
+      o.setVelocity(0, spd(speed));
       o.setDepth(2);
       o._hp = hp;
       o._score = score;
       o._touchDmg = touch;
-      o._radius = radius;
       o._indestructible = indestructible;
-      o.body.setCircle(radius, o.width / 2 - radius, o.height / 2 - radius);
+      syncObstacleCircle(o, radius);
       if (indestructible) {
         // Slow axial spin, random direction
         const spin = Phaser.Math.Between(6, 18) * (Math.random() < 0.5 ? -1 : 1);
@@ -2696,15 +3192,15 @@
 
       // Pattern: occasional side-by-side pair with a gap (asteroids only)
       if (!indestructible && t > 25 && Math.random() < 0.25) {
-        const x2 = Phaser.Math.Clamp(x + (Math.random() < 0.5 ? -160 : 160), 40, W - 40);
-        if (Math.abs(x2 - x) > 120) {
+        const x2 = Phaser.Math.Clamp(x + (Math.random() < 0.5 ? -160 : 160) * speedScale(), 40, W - 40);
+        if (Math.abs(x2 - x) > 120 * speedScale()) {
           const o2 = this.obstacles.create(x2, -80, "asteroid_s");
-          o2.setVelocity(0, 120);
+          o2.setVelocity(0, spd(120));
           o2._hp = 20;
           o2._score = SCORE.smallAsteroid;
           o2._touchDmg = 12;
-          o2._radius = 8;
-          o2.body.setCircle(8, o2.width / 2 - 8, o2.height / 2 - 8);
+          fitSprite(o2, "asteroid_s");
+          syncObstacleCircle(o2, 8);
         }
       }
     }
@@ -2838,26 +3334,26 @@
       if (type === "scout") {
         e._hp = 25;
         e._score = SCORE.scout;
-        e._speed = 140 * diff.moveScale;
+        e._speed = spd(140 * diff.moveScale);
         e._radius = 12;
         e._fireEvery = 1600 * diff.fireRateScale;
         e._shotSpeed = 210;
         e._shotDmg = 7;
-        e.body.setSize(18, 18);
+        syncArcadeBody(e, null, null, Math.max(22, e.displayWidth * 0.55));
       } else if (type === "fighter") {
         e._hp = 55;
         e._score = SCORE.fighter;
-        e._speed = 100 * diff.moveScale;
+        e._speed = spd(100 * diff.moveScale);
         e._radius = 14;
         e._fireEvery = 1200 * diff.fireRateScale;
         e._shotSpeed = 250;
         e._shotDmg = 10;
-        e.body.setSize(24, 16);
+        syncArcadeBody(e, null, null, Math.max(26, e.displayWidth * 0.55));
       } else if (type === "doomstar") {
         // Doom Star Boss — largest sprite-map ship, dual forward cannons
         e._hp = 320;
         e._score = SCORE.doomstar;
-        e._speed = 48 * diff.moveScale;
+        e._speed = spd(48 * diff.moveScale);
         e._radius = 42;
         e._fireEvery = 720 * diff.fireRateScale;
         e._shotSpeed = 230;
@@ -2867,19 +3363,19 @@
         e._doomstar = true;
         e._weaponMode = "cannons";
         e._weaponShotsLeft = Phaser.Math.Between(3, 5);
-        e.body.setSize(96, 52);
+        syncArcadeBody(e, null, null, Math.max(64, e.displayWidth * 0.55));
         this.cameras.main.flash(100, 180, 40, 60);
         SFX.enemyLaser();
       } else {
         e._hp = 160;
         e._score = SCORE.heavy;
-        e._speed = 65 * diff.moveScale;
+        e._speed = spd(65 * diff.moveScale);
         e._radius = 22;
         e._fireEvery = 1000 * diff.fireRateScale;
         e._shotSpeed = 190;
         e._shotDmg = 16;
         e._heavy = true;
-        e.body.setSize(40, 28);
+        syncArcadeBody(e, null, null, Math.max(34, e.displayWidth * 0.55));
       }
     }
 
@@ -3029,12 +3525,12 @@
 
         if (e._type === "scout") {
           // Flank: add lateral sine
-          vx += Math.cos(angle + Math.PI / 2) * Math.sin(this.time.now / 300) * 80;
-          vy += Math.sin(angle + Math.PI / 2) * Math.sin(this.time.now / 300) * 80;
+          vx += Math.cos(angle + Math.PI / 2) * Math.sin(this.time.now / 300) * spd(80);
+          vy += Math.sin(angle + Math.PI / 2) * Math.sin(this.time.now / 300) * spd(80);
         } else if (e._type === "heavy" || e._type === "doomstar") {
           // Slow approach, keep distance (Doomstar hangs back farther)
           const dist = Phaser.Math.Distance.Between(e.x, e.y, this.player.x, this.player.y);
-          const keep = e._type === "doomstar" ? 220 : 180;
+          const keep = e._type === "doomstar" ? spd(220) : spd(180);
           if (dist < keep) {
             vx *= -0.35;
             vy *= -0.35;
@@ -3050,12 +3546,12 @@
           if (e._doomstar) {
             this.fireDoomstarVolley(e);
           } else if (e._heavy) {
-            // Enemy Heavy shot = same crimson bolt as Doomstar, just smaller
-            const heavyOpts = { displayH: 14 };
-            this.fireEnemyProjectile(e, e._shotSpeed, "doomstar_shot", e._shotDmg, 0, 0, heavyOpts);
+            // Dedicated heavy bolt — smaller than Doomstar main shots
+            const heavyOpts = { displayH: SPRITE_H.heavy_shot || 12 };
+            this.fireEnemyProjectile(e, e._shotSpeed, "heavy_shot", e._shotDmg, 0, 0, heavyOpts);
             this.time.delayedCall(120, () => {
               if (e.active) {
-                this.fireEnemyProjectile(e, e._shotSpeed, "doomstar_shot", e._shotDmg, 0, 0, heavyOpts);
+                this.fireEnemyProjectile(e, e._shotSpeed, "heavy_shot", e._shotDmg, 0, 0, heavyOpts);
               }
             });
           } else {
@@ -3071,12 +3567,11 @@
       const o = this.obstacles.create(Phaser.Math.Between(40, W - 40), -30, key);
       fitSprite(o, key);
       const speed = big ? 70 : 100;
-      o.setVelocity(Phaser.Math.Between(-30, 30), speed);
+      o.setVelocity(spd(Phaser.Math.Between(-30, 30)), spd(speed));
       o._hp = big ? 55 : 20;
       o._score = big ? SCORE.largeAsteroid : SCORE.smallAsteroid;
       o._touchDmg = big ? 18 : 12;
-      o._radius = big ? 18 : 8;
-      o.body.setCircle(o._radius, o.width / 2 - o._radius, o.height / 2 - o._radius);
+      syncObstacleCircle(o, big ? 18 : 8);
       o.setAngularVelocity(Phaser.Math.Between(-50, 50));
     }
 
@@ -3109,14 +3604,13 @@
       const x = this.findClearPlanetX(radius, -50);
       const o = this.obstacles.create(x, -50, key);
       fitSprite(o, key);
-      o.setVelocity(Phaser.Math.Between(-20, 20), speed);
+      o.setVelocity(spd(Phaser.Math.Between(-20, 20)), spd(speed));
       o.setDepth(2);
       o._hp = 99999;
       o._score = score;
       o._touchDmg = touch;
-      o._radius = radius;
       o._indestructible = true;
-      o.body.setCircle(radius, o.width / 2 - radius, o.height / 2 - radius);
+      syncObstacleCircle(o, radius);
       const spin = Phaser.Math.Between(6, 18) * (Math.random() < 0.5 ? -1 : 1);
       o.setAngularVelocity(spin);
     }
@@ -3208,14 +3702,19 @@
     config.scale.width = W;
     config.scale.height = H;
     const game = new Phaser.Game(config);
+    window.__PSS_GAME = game;
     const onWinResize = () => {
       syncViewportSize(game);
       if (game.scene.isActive("Flight") || game.scene.isActive("Fight")) {
         const play = game.scene.getScene(game.scene.isActive("Flight") ? "Flight" : "Fight");
         if (play && play.physics && play.physics.world) {
-          play.physics.world.setBounds(0, 0, W, H);
           play.cameras.main.setBounds(0, 0, W, H);
           play.cameras.main.setSize(W, H);
+          if (typeof play.applyPlayfieldBounds === "function") {
+            play.applyPlayfieldBounds();
+          } else {
+            play.physics.world.setBounds(0, 0, W, H);
+          }
         }
       }
     };

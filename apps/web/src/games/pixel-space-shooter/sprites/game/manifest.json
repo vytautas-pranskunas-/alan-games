@@ -65,6 +65,9 @@
   "laser": {
     "file": "laser.png"
   },
+  "player_laser": {
+    "file": "player_laser.png"
+  },
   "dread_shot": {
     "file": "dread_shot.png"
   },
