@@ -2615,12 +2615,12 @@
       this.chainNextTick = now;
     }
 
-    /** True if the enemy's body is fully inside the playfield (not just peeking in from off-screen). */
-    chainEnemyVisible(e) {
-      if (!e || !e.active) return false;
-      const hw = Math.max(8, (e.displayWidth || 0) * 0.45);
-      const hh = Math.max(8, (e.displayHeight || 0) * 0.45);
-      return e.x - hw >= 0 && e.x + hw <= W && e.y - hh >= 0 && e.y + hh <= H;
+    /** True if the target's body is fully inside the playfield (not just peeking in from off-screen). */
+    chainTargetVisible(target) {
+      if (!target || !target.active) return false;
+      const hw = Math.max(8, (target.displayWidth || 0) * 0.45);
+      const hh = Math.max(8, (target.displayHeight || 0) * 0.45);
+      return target.x - hw >= 0 && target.x + hw <= W && target.y - hh >= 0 && target.y + hh <= H;
     }
 
     /**
@@ -2628,7 +2628,19 @@
      * Cursor / aim is never involved.
      */
     chainTargets() {
-      const pool = this.enemies.getChildren().filter((e) => this.chainEnemyVisible(e));
+      const pool = [];
+      if (this.obstacles) {
+        this.obstacles.getChildren().forEach((obs) => {
+          if (!this.isAsteroidObstacle(obs) || !this.chainTargetVisible(obs)) return;
+          pool.push(obs);
+        });
+      }
+      if (this.mode === "fight" && this.enemies) {
+        this.enemies.getChildren().forEach((enemy) => {
+          if (!this.chainTargetVisible(enemy)) return;
+          pool.push(enemy);
+        });
+      }
       const order = [];
       let cx = this.player.x;
       let cy = this.player.y;
@@ -2889,11 +2901,12 @@
         if (now >= this.chainNextTick) {
           this.chainNextTick = now + CHAIN_TICK_MS;
           let killed = 0;
-          (this._chainTargets || []).forEach((e) => {
-            if (!e.active) return;
-            this.damageEnemy(e, CHAIN_TICK_DMG, false, true);
-            if (!e.active) killed += 1;
-            else this.spawnBurst(e.x, e.y, 0x88ddff, 3);
+          (this._chainTargets || []).forEach((target) => {
+            if (!target.active) return;
+            if (this.isAsteroidObstacle(target)) this.damageObstacle(target, CHAIN_TICK_DMG, false, true);
+            else this.damageEnemy(target, CHAIN_TICK_DMG, false, true);
+            if (!target.active) killed += 1;
+            else this.spawnBurst(target.x, target.y, 0x88ddff, 3);
           });
           if (killed) SFX.explodeSoft();
         }
@@ -3220,7 +3233,7 @@
       const due = this.rarePickupDue;
       if (!due) return null;
       const allyOk = this.allies.length < MAX_ALLIES;
-      const chainOk = this.mode !== "flight" && this.time.now >= this.chainUntil;
+      const chainOk = this.time.now >= this.chainUntil;
       if (chainOk && this.pickupClock >= due.chain) return "chain";
       if (allyOk && this.pickupClock >= due.ally) return "ally";
       return null;
