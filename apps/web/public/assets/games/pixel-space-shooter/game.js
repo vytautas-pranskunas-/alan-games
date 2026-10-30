@@ -241,8 +241,9 @@
       shotDmg: 12,
       shotSpeed: 560,
       dualGuns: false,
-      bodyW: 28,
-      bodyH: 24,
+      // Source-px body — wide enough that wing tips scoop pickups (~display 58×64)
+      bodyW: 52,
+      bodyH: 40,
       shieldR: 40,
     },
     dreadnought: {
@@ -256,9 +257,10 @@
       shotDmg: 26,
       shotSpeed: 500,
       dualGuns: true,
-      bodyW: 48,
-      bodyH: 36,
-      shieldR: 50,
+      // Long capital dread (source px) — cover hull + side turrets
+      bodyW: 118,
+      bodyH: 170,
+      shieldR: 56,
     },
   };
 
@@ -275,6 +277,8 @@
   /** Dev test helper join at start — off for normal play. */
   const TEST_START_HELPER = false;
   const TEST_START_HELPER_COUNT = 3;
+  /** Dev: spawn floating shield + helper pickups at run start for audio/collect tests. */
+  const TEST_START_PICKUPS = true;
   /** TEMP: force tablet sticks/buttons in desktop browser for UI preview. */
   const FORCE_TOUCH_UI = false;
 
@@ -327,10 +331,12 @@
       if (SHIPS[id]) localStorage.setItem(this.ship, id);
     },
     getSettings() {
+      const vol = Number(localStorage.getItem(this.volume));
       return {
         sound: localStorage.getItem(this.sound) !== "0",
         music: localStorage.getItem(this.music) !== "0",
-        volume: Number(localStorage.getItem(this.volume) ?? "0.6"),
+        // Quieter default so music isn't loud from the start
+        volume: Number.isFinite(vol) ? Phaser.Math.Clamp(vol, 0, 1) : 0.45,
       };
     },
     saveSettings(s) {
@@ -340,18 +346,76 @@
     },
   };
 
-  /* -------------------- Audio (Web Audio beeps) -------------------- */
+  /** Phaser audio keys loaded from soundfx/ */
+  const AUDIO_FILES = {
+    plasma1: "soundfx/plasma1.mp3",
+    plasma2: "soundfx/plasma2.mp3",
+    plasma3: "soundfx/plasma3.mp3",
+    plasma4: "soundfx/plasma4.mp3",
+    laser: "soundfx/laser.mp3",
+    explosion: "soundfx/explosion.mp3",
+    magnetic: "soundfx/magnetic.mp3",
+    missle: "soundfx/missle.mp3", // filename spelling as shipped
+    collected: "soundfx/collected.mp3",
+    shield_activated: "soundfx/shield-activated.mp3",
+    helper_ship: "soundfx/helper-ship.mp3",
+    music: "soundfx/music.mp3",
+  };
+
+  /* -------------------- Audio (mp3 + soft beep fallbacks) -------------------- */
   const SFX = {
+    game: null,
     ctx: null,
     settings: Storage.getSettings(),
+    musicTrack: null,
+    musicGapTimer: null,
+    musicStarted: false,
+    /** Music plays quieter than SFX relative to master volume */
+    MUSIC_GAIN: 0.28,
+    SFX_GAIN: 0.7,
+
+    bind(game) {
+      this.game = game;
+    },
+
     ensure() {
+      if (this.game && this.game.sound) {
+        try {
+          if (this.game.sound.context && this.game.sound.context.state === "suspended") {
+            this.game.sound.context.resume();
+          }
+          this.game.sound.unlock();
+        } catch (e) {
+          /* ignore */
+        }
+      }
       if (!this.ctx) {
         const AC = window.AudioContext || window.webkitAudioContext;
         if (AC) this.ctx = new AC();
       }
       if (this.ctx && this.ctx.state === "suspended") this.ctx.resume();
+      this.tryStartMusic();
       return this.ctx;
     },
+
+    has(key) {
+      return !!(this.game && this.game.cache && this.game.cache.audio && this.game.cache.audio.exists(key));
+    },
+
+    play(key, vol = 0.55) {
+      if (!this.settings.sound) return false;
+      this.ensure();
+      if (!this.game || !this.game.sound || !this.has(key)) return false;
+      try {
+        this.game.sound.play(key, {
+          volume: Phaser.Math.Clamp(vol * this.SFX_GAIN * this.settings.volume, 0, 1),
+        });
+        return true;
+      } catch (e) {
+        return false;
+      }
+    },
+
     tone(freq, dur, type, gain) {
       if (!this.settings.sound) return;
       const ctx = this.ensure();
@@ -369,58 +433,221 @@
       o.start(t0);
       o.stop(t0 + dur + 0.02);
     },
-    laser() {
-      this.tone(880, 0.06, "square", 0.05);
-      this.tone(1200, 0.04, "triangle", 0.03);
+
+    /** Interceptor / light ship primary */
+    plasmaLight() {
+      if (!this.play("plasma4", 0.5)) this.tone(880, 0.06, "square", 0.05);
     },
+    /** Dreadnought / heavy ship primary */
+    plasmaHeavy() {
+      if (!this.play("plasma1", 0.55)) this.tone(420, 0.08, "sawtooth", 0.06);
+    },
+    /** Triple / multi-shot */
+    plasmaMulti() {
+      if (!this.play("plasma3", 0.5)) this.tone(700, 0.08, "square", 0.05);
+    },
+    /** Opponent ship shots */
     enemyLaser() {
-      this.tone(220, 0.08, "sawtooth", 0.04);
+      if (!this.play("plasma2", 0.45)) this.tone(220, 0.08, "sawtooth", 0.04);
+    },
+    /** Player primary — pick by ship / buff (legacy name kept for allies) */
+    laser(ship) {
+      if (ship && ship.dualGuns) this.plasmaHeavy();
+      else this.plasmaLight();
     },
     hit() {
-      this.tone(160, 0.12, "square", 0.07);
+      if (!this.play("explosion", 0.28)) this.tone(160, 0.12, "square", 0.07);
     },
     explode() {
-      this.tone(90, 0.25, "sawtooth", 0.1);
-      this.tone(60, 0.35, "triangle", 0.06);
+      if (!this.play("explosion", 0.7)) {
+        this.tone(90, 0.25, "sawtooth", 0.1);
+        this.tone(60, 0.35, "triangle", 0.06);
+      }
+    },
+    /** Mid boom for magnetic wipe — quieter than stacked full explodes, still clear under magnetic */
+    explodeSoft() {
+      if (!this.settings.sound) return;
+      this.ensure();
+      if (this.has("explosion") && this.game?.sound) {
+        try {
+          // Separate instance so it isn't ducked/replaced by magnetic or other plays
+          const boom = this.game.sound.add("explosion", {
+            volume: Phaser.Math.Clamp(Math.max(0.78, this.settings.volume), 0, 0.88),
+          });
+          boom.once("complete", () => {
+            try {
+              boom.destroy();
+            } catch (e) {
+              /* ignore */
+            }
+          });
+          boom.play();
+          return;
+        } catch (e) {
+          /* fall through */
+        }
+      }
+      this.tone(90, 0.22, "sawtooth", 0.08);
     },
     superCharge() {
-      this.tone(200, 0.2, "sine", 0.08);
-      this.tone(400, 0.25, "sine", 0.08);
+      if (!this.play("laser", 0.35)) {
+        this.tone(200, 0.2, "sine", 0.08);
+        this.tone(400, 0.25, "sine", 0.08);
+      }
     },
     superFire() {
-      this.tone(120, 0.5, "sawtooth", 0.14);
-      this.tone(80, 0.6, "triangle", 0.1);
+      if (!this.play("laser", 0.75)) {
+        this.tone(120, 0.5, "sawtooth", 0.14);
+        this.tone(80, 0.6, "triangle", 0.1);
+      }
     },
     magnetic() {
+      // Louder cue — clip is quiet and used to get buried under stacked explosions
+      if (!this.settings.sound) return;
+      this.ensure();
+      if (this.has("magnetic") && this.game?.sound) {
+        try {
+          this.game.sound.play("magnetic", {
+            volume: Phaser.Math.Clamp(Math.max(0.95, this.settings.volume), 0, 1),
+          });
+          return;
+        } catch (e) {
+          /* fall through */
+        }
+      }
       this.tone(90, 0.35, "sine", 0.12);
       this.tone(180, 0.4, "triangle", 0.08);
-      this.tone(45, 0.5, "sawtooth", 0.06);
+    },
+    missile() {
+      if (!this.play("missle", 0.65)) this.tone(140, 0.2, "sawtooth", 0.08);
     },
     pickup() {
-      this.tone(520, 0.08, "sine", 0.06);
-      this.tone(780, 0.1, "triangle", 0.05);
+      if (!this.play("collected", 0.65)) {
+        this.tone(520, 0.08, "sine", 0.06);
+        this.tone(780, 0.1, "triangle", 0.05);
+      }
     },
     shield() {
+      // Louder than normal SFX — source clip is quiet
+      if (!this.settings.sound) return;
+      this.ensure();
+      if (this.has("shield_activated") && this.game?.sound) {
+        try {
+          this.game.sound.play("shield_activated", {
+            volume: Phaser.Math.Clamp(Math.max(1, this.settings.volume), 0, 1),
+          });
+          return;
+        } catch (e) {
+          /* fall through */
+        }
+      }
       this.tone(400, 0.15, "sine", 0.08);
       this.tone(600, 0.2, "triangle", 0.06);
     },
     triple() {
-      this.tone(700, 0.1, "square", 0.06);
-      this.tone(900, 0.12, "square", 0.05);
-      this.tone(1100, 0.1, "triangle", 0.04);
+      this.plasmaMulti();
     },
     allyJoin() {
+      // Same loud path as shield — helper-ship clip was too quiet via SFX_GAIN
+      if (!this.settings.sound) return;
+      this.ensure();
+      if (this.has("helper_ship") && this.game?.sound) {
+        try {
+          this.game.sound.play("helper_ship", {
+            volume: Phaser.Math.Clamp(Math.max(1, this.settings.volume), 0, 1),
+          });
+          return;
+        } catch (e) {
+          /* fall through */
+        }
+      }
       this.tone(480, 0.08, "sine", 0.06);
       this.tone(720, 0.12, "triangle", 0.05);
-      this.tone(960, 0.1, "square", 0.04);
     },
     gameOver() {
-      this.tone(300, 0.2, "square", 0.08);
-      setTimeout(() => this.tone(200, 0.25, "square", 0.08), 180);
-      setTimeout(() => this.tone(120, 0.4, "triangle", 0.1), 360);
+      if (!this.play("explosion", 0.55)) {
+        this.tone(300, 0.2, "square", 0.08);
+        setTimeout(() => this.tone(200, 0.25, "square", 0.08), 180);
+        setTimeout(() => this.tone(120, 0.4, "triangle", 0.1), 360);
+      }
     },
     ui() {
       this.tone(660, 0.05, "square", 0.04);
+    },
+
+    musicVolume() {
+      return Phaser.Math.Clamp(this.MUSIC_GAIN * this.settings.volume, 0, 1);
+    },
+
+    stopMusic() {
+      if (this.musicGapTimer) {
+        clearTimeout(this.musicGapTimer);
+        this.musicGapTimer = null;
+      }
+      if (this.musicTrack) {
+        try {
+          this.musicTrack.stop();
+          this.musicTrack.destroy();
+        } catch (e) {
+          /* ignore */
+        }
+        this.musicTrack = null;
+      }
+    },
+
+    tryStartMusic() {
+      if (!this.settings.music || !this.game || !this.has("music")) return;
+      if (this.musicTrack && this.musicTrack.isPlaying) {
+        this.musicTrack.setVolume(this.musicVolume());
+        return;
+      }
+      if (this.musicGapTimer) return;
+      this._playMusicTrack();
+    },
+
+    _playMusicTrack() {
+      if (!this.settings.music || !this.game || !this.has("music")) return;
+      // Resume AudioContext if a user gesture already happened
+      try {
+        if (this.game.sound.context && this.game.sound.context.state === "suspended") {
+          this.game.sound.context.resume();
+        }
+        this.game.sound.unlock();
+      } catch (e) {
+        /* ignore */
+      }
+      this.stopMusic();
+      try {
+        this.musicTrack = this.game.sound.add("music", {
+          volume: this.musicVolume(),
+          loop: false,
+        });
+        this.musicTrack.once("complete", () => {
+          this.musicTrack = null;
+          // 5s pause between track plays
+          this.musicGapTimer = setTimeout(() => {
+            this.musicGapTimer = null;
+            this._playMusicTrack();
+          }, 5000);
+        });
+        this.musicTrack.play();
+        this.musicStarted = true;
+      } catch (e) {
+        this.musicTrack = null;
+      }
+    },
+
+    applySettings(s) {
+      this.settings = s || Storage.getSettings();
+      if (!this.settings.music) {
+        this.stopMusic();
+      } else {
+        this.tryStartMusic();
+        if (this.musicTrack) this.musicTrack.setVolume(this.musicVolume());
+      }
+      if (this.game && this.game.sound) {
+        this.game.sound.mute = false;
+      }
     },
   };
 
@@ -431,7 +658,7 @@
    */
   const SPRITE_H = {
     player: 64,
-    player_dread: 96,
+    player_dread: 110,
     ally_drone: 36,
     enemy_scout: 48,
     enemy_fighter: 54,
@@ -454,7 +681,8 @@
     dread_shot: 16,
     fx_shield: 86,
     enemy_laser: 52,
-    heavy_shot: 12,
+    // Match dread main-gun size (was 12 → invisible dark crop)
+    heavy_shot: 16,
     doomstar_shot: 48,
     doomstar_laser: 72,
     doomstar_missile: 64,
@@ -616,6 +844,9 @@
       SPRITE_FILES.forEach((key) => {
         this.load.image(key, `sprites/game/${key}.png`);
       });
+      Object.keys(AUDIO_FILES).forEach((key) => {
+        this.load.audio(key, AUDIO_FILES[key]);
+      });
     }
     create() {
       // Soft filtering so sprite-map art keeps smooth edges (not hard pixel blocks)
@@ -670,6 +901,15 @@
         });
       }
       syncViewportSize(this.game);
+      SFX.bind(this.game);
+      SFX.applySettings(Storage.getSettings());
+      // Unlock WebAudio + start quiet music after first gesture
+      const unlock = () => {
+        SFX.ensure();
+        SFX.tryStartMusic();
+      };
+      this.input.once("pointerdown", unlock);
+      this.input.keyboard?.once("keydown", unlock);
       this.scene.start("Menu");
     }
   }
@@ -742,6 +982,12 @@
     create() {
       document.body.classList.add("menu-cursor");
       syncViewportSize(this.game);
+      SFX.bind(this.game);
+      // First click/key elsewhere will unlock; nudge AudioContext when possible
+      this.input.once("pointerdown", () => {
+        SFX.ensure();
+        SFX.tryStartMusic();
+      });
       this.stars = createStarfield(this);
 
       // Header + ship preview, then buttons — leave clear gaps so nothing overlaps
@@ -883,10 +1129,10 @@
           .rectangle(cx, cy, panelW, panelH, 0x122038, 1)
           .setStrokeStyle(2, 0x2a4a6a)
           .setInteractive({ useHandCursor: true });
-        // Ship only inside the block
+        // Ship only inside the block — never upscale (fighter is small HD art; 2× looks pixelated)
         const img = this.add.image(cx, cy, ship.texture);
         const fitH = panelH * 0.72;
-        img.setScale(Math.min(ship.id === "dreadnought" ? 1.6 : 2.4, fitH / Math.max(1, img.height)));
+        img.setScale(Math.min(1, fitH / Math.max(1, img.height)));
 
         // Name / blurb / status UNDER the block (readable, no overlap)
         const underY = cy + panelH / 2 + uiPx(18);
@@ -1081,7 +1327,8 @@
           .rectangle(cx, cy, 240, 160, 0x122038, 1)
           .setStrokeStyle(2, 0x2a4a6a)
           .setInteractive({ useHandCursor: true });
-        const img = this.add.image(cx, cy - 28, ship.texture).setScale(ship.id === "dreadnought" ? 1.5 : 2.2);
+        const img = this.add.image(cx, cy - 28, ship.texture);
+        img.setScale(Math.min(1, 110 / Math.max(1, img.height)));
         const title = this.add
           .text(cx, cy + 28, ship.name, {
             fontFamily: "Courier New, monospace",
@@ -1112,7 +1359,7 @@
       this.soundText.on("pointerdown", () => {
         this.settings.sound = !this.settings.sound;
         this.persist();
-        SFX.ui();
+        if (this.settings.sound) SFX.ui();
       });
       this.musicText.on("pointerdown", () => {
         this.settings.music = !this.settings.music;
@@ -1138,7 +1385,7 @@
       this.input.keyboard.on("keydown-ESC", () => this.scene.start("Menu"));
     }
     refresh() {
-      this.soundText.setText(`SOUND: ${this.settings.sound ? "ON" : "OFF"}`);
+      this.soundText.setText(`SOUND FX: ${this.settings.sound ? "ON" : "OFF"}`);
       this.musicText.setText(`MUSIC: ${this.settings.music ? "ON" : "OFF"}`);
       this.volText.setText(`VOLUME: ${Math.round(this.settings.volume * 100)}%`);
       if (this.shipCards) {
@@ -1153,7 +1400,7 @@
     }
     persist() {
       Storage.saveSettings(this.settings);
-      SFX.settings = this.settings;
+      SFX.applySettings(this.settings);
       this.refresh();
     }
   }
@@ -1312,6 +1559,12 @@
             this.player.y + Math.sin(ang) * 56
           );
         }
+      }
+
+      // Test start: floating shield + helper pickups near the ship
+      if (TEST_START_PICKUPS) {
+        this.spawnPickupAt("shield", this.player.x - 90, this.player.y - 120);
+        this.spawnPickupAt("ally", this.player.x + 90, this.player.y - 120);
       }
     }
 
@@ -1904,7 +2157,8 @@
       if (hasShield) {
         this.player.setAlpha(1);
       } else if (this.time.now < this.invulnUntil) {
-        this.player.setAlpha(Math.sin(this.time.now / 40) > 0 ? 1 : 0.35);
+        // Gentler invuln flicker (was hard blink to 0.35)
+        this.player.setAlpha(Math.sin(this.time.now / 70) > 0 ? 1 : 0.62);
       } else {
         this.player.setAlpha(1);
       }
@@ -2019,17 +2273,19 @@
         this.fireLaserShot(px, py, angle - spread, dmg, 0xffcc66);
         this.fireLaserShot(px, py, angle, dmg + 2, 0x66ffaa);
         this.fireLaserShot(px, py, angle + spread, dmg, 0xffcc66);
+        SFX.plasmaMulti();
       } else if (ship.dualGuns) {
-        // Dreadnought: two heavy bolts from wing cannons
-        const side = 14;
+        // Dreadnought: two heavy bolts from side turrets
+        const side = 22;
         const ox = Math.cos(angle + Math.PI / 2) * side;
         const oy = Math.sin(angle + Math.PI / 2) * side;
         this.fireLaserShot(px + ox, py + oy, angle, dmg, null, "dread_shot");
         this.fireLaserShot(px - ox, py - oy, angle, dmg, null, "dread_shot");
+        SFX.plasmaHeavy();
       } else {
         this.fireLaserShot(px, py, angle, dmg);
+        SFX.plasmaLight();
       }
-      SFX.laser();
     }
 
     recycleLaser(laser) {
@@ -2177,17 +2433,21 @@
 
     wipeScreenThreats() {
       const hitTargets = this._magneticHit || (this._magneticHit = new Set());
+      let wiped = 0;
 
       [...this.obstacles.getChildren()].forEach((obj) => {
         if (!obj.active || hitTargets.has(obj)) return;
         hitTargets.add(obj);
-        this.vaporizeObstacle(obj);
+        wiped += 1;
+        this.vaporizeObstacle(obj, true);
       });
 
       [...this.enemies.getChildren()].forEach((obj) => {
         if (!obj.active || hitTargets.has(obj)) return;
         hitTargets.add(obj);
-        this.damageEnemy(obj, 9999, true);
+        wiped += 1;
+        // Per-target explode silenced — soft booms play once below
+        this.damageEnemy(obj, 9999, true, true);
       });
 
       [...this.enemyLasers.getChildren()].forEach((bolt) => {
@@ -2198,21 +2458,30 @@
       this.playerLasers.getChildren().forEach((l) => {
         if (l.active) this.recycleLaser(l);
       });
+
+      // Staggered mid-volume explosions under magnetic (not one-per-target stack)
+      if (wiped > 0) {
+        this.time.delayedCall(60, () => SFX.explodeSoft());
+        this.time.delayedCall(140, () => SFX.explodeSoft());
+        if (wiped > 3) {
+          this.time.delayedCall(240, () => SFX.explodeSoft());
+        }
+      }
     }
 
     /** Magnetic Blast: erase any obstacle, including all planet types. */
-    vaporizeObstacle(obs) {
+    vaporizeObstacle(obs, silent) {
       if (!obs || !obs.active) return;
       const x = obs.x;
       const y = obs.y;
       const wasPlanet = !!obs._indestructible || (obs.texture && String(obs.texture.key).startsWith("planet"));
       if (wasPlanet) {
         this.addScore(obs._score || SCORE.planetSmall);
-        SFX.explode();
+        if (!silent) SFX.explode();
         this.spawnExplosion(x, y, "lg");
         obs.destroy();
       } else {
-        this.damageObstacle(obs, 9999, true);
+        this.damageObstacle(obs, 9999, true, silent);
       }
     }
 
@@ -2223,6 +2492,17 @@
       if (kind === "super") return "pickup_super";
       if (kind === "magnetic") return "pickup_magnetic";
       return "fuel";
+    }
+
+    /** Spawn a pickup at an absolute position (slow float). */
+    spawnPickupAt(kind, x, y) {
+      if (!this.pickups) return null;
+      const key = this.pickupTextureKey(kind);
+      const item = this.pickups.create(x, y, key);
+      if (!item) return null;
+      this.stylePickup(item, kind);
+      item.setVelocity(spd(Phaser.Math.Between(-12, 12)), spd(Phaser.Math.Between(18, 32)));
+      return item;
     }
 
     /** Pickups drift in from ahead like planets — fuel / shield / triple / helper. */
@@ -2243,8 +2523,9 @@
       item._kind = kind;
       item._heal = 20;
       fitSprite(item, this.pickupTextureKey(kind));
-      const bw = Math.max(14, item.displayWidth * 0.7);
-      const bh = Math.max(14, item.displayHeight * 0.7);
+      // Generous pickup body so wing contact registers
+      const bw = Math.max(18, item.displayWidth * 0.92);
+      const bh = Math.max(18, item.displayHeight * 0.92);
       item.body.setSize(bw / item.scaleX, bh / item.scaleY);
       if (kind === "ally") {
         item.setAngularVelocity(0);
@@ -2298,6 +2579,7 @@
       const px = item.x;
       const py = item.y;
       item.destroy();
+      SFX.pickup();
 
       if (kind === "shield") {
         this.shieldUntil = this.time.now + SHIELD_DURATION_MS;
@@ -2306,25 +2588,21 @@
         this.cameras.main.flash(60, 100, 200, 255);
       } else if (kind === "triple") {
         this.tripleUntil = this.time.now + TRIPLE_DURATION_MS;
-        SFX.triple();
         this.spawnBurst(player.x, player.y, 0xffaa33, 14);
         this.cameras.main.flash(60, 255, 180, 80);
       } else if (kind === "ally") {
         this.recruitAlly(px, py);
       } else if (kind === "super") {
         this.superReadyAt = Math.min(this.superReadyAt, this.time.now);
-        SFX.superCharge();
         this.spawnBurst(player.x, player.y, 0x66ccff, 16);
         this.cameras.main.flash(70, 120, 200, 255);
       } else if (kind === "magnetic") {
         this.magneticReadyAt = Math.min(this.magneticReadyAt, this.time.now);
-        SFX.magnetic();
         this.spawnBurst(player.x, player.y, 0xaa66ff, 16);
         this.cameras.main.flash(70, 180, 80, 255);
       } else {
         const before = this.hp;
         this.hp = Math.min(PLAYER_MAX_HP, this.hp + heal);
-        SFX.pickup();
         this.spawnBurst(player.x, player.y, 0x66ff99, 10);
         if (this.hp > before) {
           this.cameras.main.flash(50, 80, 255, 120);
@@ -2337,7 +2615,6 @@
       if (this.allies.length >= MAX_ALLIES) {
         // Wing full — small heal instead
         this.hp = Math.min(PLAYER_MAX_HP, this.hp + 8);
-        SFX.pickup();
         this.spawnBurst(this.player.x, this.player.y, 0x66ffaa, 8);
         return;
       }
@@ -2423,6 +2700,7 @@
           const kind = item._kind || "fuel";
           const heal = item._heal || 20;
           item.destroy();
+          SFX.pickup();
           if (kind === "shield") {
             ally.shieldUntil = this.time.now + SHIELD_DURATION_MS;
             SFX.shield();
@@ -2430,22 +2708,18 @@
           } else if (kind === "triple") {
             ally.tripleUntil = this.time.now + TRIPLE_DURATION_MS;
             ally.sprite.setTint(0xffcc66);
-            SFX.triple();
             this.spawnBurst(ally.sprite.x, ally.sprite.y, 0xffaa33, 10);
           } else if (kind === "ally") {
             // Extra helper scooped by a wingman — recruit for the player
             this.recruitAlly(ally.sprite.x, ally.sprite.y);
           } else if (kind === "super") {
             this.superReadyAt = Math.min(this.superReadyAt, this.time.now);
-            SFX.superCharge();
             this.spawnBurst(ally.sprite.x, ally.sprite.y, 0x66ccff, 10);
           } else if (kind === "magnetic") {
             this.magneticReadyAt = Math.min(this.magneticReadyAt, this.time.now);
-            SFX.magnetic();
             this.spawnBurst(ally.sprite.x, ally.sprite.y, 0xaa66ff, 10);
           } else {
             ally.hp = Math.min(ally.maxHp || ALLY_MAX_HP, ally.hp + heal);
-            SFX.pickup();
             this.spawnBurst(ally.sprite.x, ally.sprite.y, 0x66ff99, 8);
           }
           break;
@@ -2655,7 +2929,10 @@
           const laser = this.fireLaserShot(ax, ay, angle, dmg, 0x66ffcc);
           if (laser) laser._fromAlly = true;
         }
-        if (i === 0) SFX.laser();
+        if (i === 0) {
+          if (tripleOn) SFX.plasmaMulti();
+          else SFX.plasmaLight();
+        }
       }
 
       this.checkAllyPickups();
@@ -2763,10 +3040,11 @@
       if (this.time.now < this.invulnUntil) return;
       this.hp = Math.max(0, this.hp - amount);
       this.invulnUntil = this.time.now + INVULN_MS;
-      this.cameras.main.flash(60, 255, 40, 40);
-      this.shake = 6;
+      // Soft red vignette — short + muted so it doesn't dominate the screen
+      this.cameras.main.flash(28, 200, 70, 70);
+      this.shake = 4;
       SFX.hit();
-      this.spawnBurst(this.player.x, this.player.y, 0xff6666, 8);
+      this.spawnBurst(this.player.x, this.player.y, 0xff6666, 5);
       this.updateHud();
       if (this.hp <= 0) {
         this.hp = 0;
@@ -2794,7 +3072,7 @@
       this.damageObstacle(obs, laser._dmg || 12, false);
     }
 
-    damageObstacle(obs, dmg, fromSuper) {
+    damageObstacle(obs, dmg, fromSuper, silent) {
       if (obs._indestructible && !fromSuper) {
         // Normal lasers bounce off planets — only Magnetic Blast wipes them
         this.spawnBurst(obs.x, obs.y, 0x88aaff, 4);
@@ -2806,7 +3084,7 @@
         const x = obs.x;
         const y = obs.y;
         this.addScore(obs._score || SCORE.smallAsteroid);
-        SFX.explode();
+        if (!silent) SFX.explode();
         this.spawnExplosion(x, y, fromSuper ? "lg" : "sm");
         obs.destroy();
       }
@@ -2818,7 +3096,7 @@
       this.damageEnemy(enemy, laser._dmg || 12, false);
     }
 
-    damageEnemy(enemy, dmg, fromSuper) {
+    damageEnemy(enemy, dmg, fromSuper, silent) {
       enemy._hp = (enemy._hp || 1) - dmg;
       this.spawnBurst(enemy.x, enemy.y, 0xff6688, fromSuper ? 18 : 6);
       if (enemy._hp <= 0) {
@@ -2826,7 +3104,7 @@
         const y = enemy.y;
         this.addScore(enemy._score || SCORE.scout);
         this.kills += 1;
-        SFX.explode();
+        if (!silent) SFX.explode();
         const size = enemy._doomstar || enemy._heavy ? "lg" : fromSuper ? "md" : "sm";
         this.spawnExplosion(x, y, size);
         enemy.destroy();
@@ -2865,7 +3143,12 @@
       const tex = key || "enemy_laser";
       const bolt = this.enemyLasers.create(enemy.x + ox, enemy.y + oy, tex);
       if (!bolt) return null;
+      if (this.textures.exists(tex) && bolt.texture?.key !== tex) {
+        bolt.setTexture(tex);
+      }
+      bolt.setActive(true).setVisible(true);
       bolt.setDepth(3);
+      bolt.clearTint();
       if (options.displayH && bolt.frame && bolt.frame.height) {
         // Absolute on-screen height (ignore prior scale / padding)
         const scale = options.displayH / bolt.frame.height;
@@ -2876,19 +3159,24 @@
       if (bolt.body) {
         const hit = Math.max(12, Math.min(26, (bolt.displayWidth + bolt.displayHeight) * 0.55));
         syncArcadeBody(bolt, null, null, hit);
+        bolt.body.enable = true;
         bolt.body.reset(enemy.x + ox, enemy.y + oy);
       }
       bolt._dmg = dmg || 8;
       bolt._homing = !!options.homing;
       bolt._homingTurn = options.homingTurn || 0.05;
       bolt._speed = spd(speed * ENEMY_SHOT_SPEED_MULT);
+      // heavy_shot / doomstar_shot art faces +X (same as dread_shot); lasers face +Y
+      const tipRight = tex === "heavy_shot" || tex === "doomstar_shot";
+      bolt._tipRight = tipRight;
       const angle = Phaser.Math.Angle.Between(enemy.x, enemy.y, this.player.x, this.player.y);
       // Slight inaccuracy so player can dodge (missiles lock tighter)
       const jitter = options.homing
         ? Phaser.Math.FloatBetween(-0.06, 0.06)
         : Phaser.Math.FloatBetween(-0.18, 0.18);
-      this.physics.velocityFromRotation(angle + jitter, bolt._speed, bolt.body.velocity);
-      bolt.rotation = angle + Math.PI / 2;
+      const aim = angle + jitter;
+      this.physics.velocityFromRotation(aim, bolt._speed, bolt.body.velocity);
+      bolt.rotation = tipRight ? aim : aim + Math.PI / 2;
       if (!options.silent) SFX.enemyLaser();
       this.time.delayedCall(options.lifeMs || 2500, () => {
         if (bolt.active) bolt.destroy();
@@ -2904,7 +3192,7 @@
         const cur = Math.atan2(bolt.body.velocity.y, bolt.body.velocity.x);
         const next = Phaser.Math.Angle.RotateTo(cur, desired, bolt._homingTurn || 0.05);
         this.physics.velocityFromRotation(next, bolt._speed || spd(180), bolt.body.velocity);
-        bolt.rotation = next + Math.PI / 2;
+        bolt.rotation = bolt._tipRight ? next : next + Math.PI / 2;
       });
     }
 
@@ -3443,7 +3731,7 @@
           guns.right.y,
           { homing: true, homingTurn: 0.045, lifeMs: 3200, silent: true }
         );
-        SFX.explode();
+        SFX.missile();
         return;
       }
 
@@ -3546,12 +3834,11 @@
           if (e._doomstar) {
             this.fireDoomstarVolley(e);
           } else if (e._heavy) {
-            // Dedicated heavy bolt — smaller than Doomstar main shots
-            const heavyOpts = { displayH: SPRITE_H.heavy_shot || 12 };
-            this.fireEnemyProjectile(e, e._shotSpeed, "heavy_shot", e._shotDmg, 0, 0, heavyOpts);
+            // Bright red plasma ball from sprite-map — same on-screen size as dread main gun
+            this.fireEnemyProjectile(e, e._shotSpeed, "heavy_shot", e._shotDmg);
             this.time.delayedCall(120, () => {
               if (e.active) {
-                this.fireEnemyProjectile(e, e._shotSpeed, "heavy_shot", e._shotDmg, 0, 0, heavyOpts);
+                this.fireEnemyProjectile(e, e._shotSpeed, "heavy_shot", e._shotDmg);
               }
             });
           } else {
@@ -3683,6 +3970,9 @@
       height: H,
       autoRound: false,
     },
+    audio: {
+      disableWebAudio: false,
+    },
     scene: [
       BootScene,
       MenuScene,
@@ -3703,6 +3993,7 @@
     config.scale.height = H;
     const game = new Phaser.Game(config);
     window.__PSS_GAME = game;
+    SFX.bind(game);
     const onWinResize = () => {
       syncViewportSize(game);
       if (game.scene.isActive("Flight") || game.scene.isActive("Fight")) {
