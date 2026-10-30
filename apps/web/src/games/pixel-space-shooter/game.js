@@ -225,6 +225,44 @@
   const MAGNETIC_DURATION_MS = 2000;
   const SHIELD_DURATION_MS = 10000;
   const TRIPLE_DURATION_MS = 10000;
+  const CHAIN_DURATION_MS = 30000;
+  const CHAIN_RELOAD_MS = 3000;
+  const CHAIN_TICK_MS = 250;
+  /** Reload widget: peak scale of the ready pulse and how many blinks it does. */
+  const CHAIN_HUD_PULSE = 1.12;
+  const CHAIN_HUD_BLINKS = 3;
+  /** Per-tick damage — scouts (25) / fighters (55) die in one tick; heavies and Doomstar take several. */
+  const CHAIN_TICK_DMG = 60;
+  /**
+   * Frames in ui/chain-lightning-pieces.png (x, y, w, h). Top part is the original sheet;
+   * below it every bolt piece (horizontal / vertical / diagonal) is pre-rotated to a
+   * horizontal strip trimmed to its glow, 5th value = core line as a fraction of height.
+   */
+  const CHAIN_FRAMES = {
+    start: [36, 23, 70, 45],
+    jt: [6, 165, 53, 32],
+    jb: [116, 169, 48, 22],
+    h1: [2, 263, 51, 9, 0.472],
+    h2: [2, 274, 47, 9, 0.48],
+    h3: [2, 285, 44, 11, 0.458],
+    v1: [2, 298, 30, 10, 0.533],
+    d1: [2, 310, 53, 10, 0.518],
+    d2: [2, 322, 45, 10, 0.501],
+    d3: [2, 334, 45, 10, 0.483],
+  };
+  const CHAIN_PIECES = {
+    h: ["h1", "h2", "h3"],
+    v: ["v1"],
+    d: ["d1", "d2", "d3"],
+  };
+  /** Start burst: orb and the cut end where the chain continues, in frame-local px. */
+  const CHAIN_START_ORB = [16, 22];
+  const CHAIN_START_END = [67, 31];
+  /** Frames in ui/chain-lightning-indicator.png — crop coords only, never resampled. */
+  const CHAIN_HUD_FRAMES = {
+    holder: [39, 62, 244, 229],
+    inner: [361, 85, 186, 186],
+  };
   const PLAYER_MAX_HP = 100;
   const INVULN_MS = 900;
 
@@ -278,7 +316,7 @@
   const TEST_START_HELPER = false;
   const TEST_START_HELPER_COUNT = 3;
   /** Dev: spawn floating shield + helper pickups at run start for audio/collect tests. */
-  const TEST_START_PICKUPS = true;
+  const TEST_START_PICKUPS = false;
   /** TEMP: force tablet sticks/buttons in desktop browser for UI preview. */
   const FORCE_TOUCH_UI = false;
 
@@ -359,6 +397,8 @@
     collected: "soundfx/collected.mp3",
     shield_activated: "soundfx/shield-activated.mp3",
     helper_ship: "soundfx/helper-ship.mp3",
+    chain1: "soundfx/chain-lightning-1.mp3",
+    chain2: "soundfx/chain-lightning-2.mp3",
     music: "soundfx/music.mp3",
   };
 
@@ -547,6 +587,27 @@
     triple() {
       this.plasmaMulti();
     },
+    /** Plays chain1/chain2 and returns its length in ms (the shot lasts that long). */
+    chainLightning(index) {
+      const key = index % 2 === 0 ? "chain1" : "chain2";
+      const fallbackMs = key === "chain1" ? 2304 : 1872;
+      const buf = this.has(key) ? this.game.cache.audio.get(key) : null;
+      const durMs = buf && buf.duration ? Math.round(buf.duration * 1000) : fallbackMs;
+      if (!this.settings.sound) return durMs;
+      this.ensure();
+      if (this.has(key) && this.game?.sound) {
+        try {
+          this.game.sound.play(key, {
+            volume: Phaser.Math.Clamp(Math.max(0.85, this.settings.volume), 0, 1),
+          });
+          return durMs;
+        } catch (e) {
+          /* fall through */
+        }
+      }
+      this.tone(1400, 0.2, "sawtooth", 0.05);
+      return durMs;
+    },
     allyJoin() {
       // Same loud path as shield — helper-ship clip was too quiet via SFX_GAIN
       if (!this.settings.sound) return;
@@ -692,6 +753,7 @@
     pickup_ally: 52,
     pickup_super: 44,
     pickup_magnetic: 48,
+    pickup_chain: 50,
     crosshair: 48,
   };
 
@@ -785,6 +847,7 @@
     "pickup_triple",
     "pickup_super",
     "pickup_magnetic",
+    "pickup_chain",
     "fx_explode_sm",
     "fx_explode_md",
     "fx_explode_lg",
@@ -841,6 +904,9 @@
       this.load.image("hud_super_fill", "ui/hud_super_fill.png");
       // Cropped from ui/button.png — shared start / pause / game-over menus
       this.load.image(MENU_BTN_TEX, "ui/menu_button.png?v=3");
+      this.load.image("fx_chain", "ui/chain-lightning-pieces.png");
+      // Full indicator sheet — holder/inner are texture frames (no re-encoded crops)
+      this.load.image("fx_chain_hud", "ui/chain-lightning-indicator.png");
       SPRITE_FILES.forEach((key) => {
         this.load.image(key, `sprites/game/${key}.png`);
       });
@@ -873,9 +939,23 @@
         "hud_mag_fill",
         "hud_super_fill",
         MENU_BTN_TEX,
+        "fx_chain",
+        "fx_chain_hud",
       ].forEach((key) => {
         if (this.textures.exists(key)) {
           const tex = this.textures.get(key);
+          if (key === "fx_chain") {
+            Object.keys(CHAIN_FRAMES).forEach((name) => {
+              const [fx, fy, fw, fh] = CHAIN_FRAMES[name];
+              if (!tex.has(name)) tex.add(name, 0, fx, fy, fw, fh);
+            });
+          }
+          if (key === "fx_chain_hud") {
+            Object.keys(CHAIN_HUD_FRAMES).forEach((name) => {
+              const [fx, fy, fw, fh] = CHAIN_HUD_FRAMES[name];
+              if (!tex.has(name)) tex.add(name, 0, fx, fy, fw, fh);
+            });
+          }
           tex.setFilter(Phaser.Textures.FilterMode.LINEAR);
           const src = tex.getSourceImage && tex.getSourceImage();
           if (src && src.style) {
@@ -1433,6 +1513,16 @@
       this._nextPickupIn = Phaser.Math.FloatBetween(4, 8);
       this.shieldUntil = 0;
       this.tripleUntil = 0;
+      this.chainUntil = 0;
+      this.chainShotUntil = 0;
+      this.chainReadyAt = 0;
+      this.chainShotCount = 0;
+      this.chainNextRedraw = 0;
+      this.chainNextTick = 0;
+      this.chainPieces = [];
+      /** Enemies locked when the current shot started — new arrivals are not added mid-shot. */
+      this.chainShotTargets = [];
+      this.chainHud = null;
       this.shieldRing = null;
       this.allies = [];
       this.touchMove = { x: 0, y: 0, active: false, id: null };
@@ -1565,6 +1655,7 @@
       if (TEST_START_PICKUPS) {
         this.spawnPickupAt("shield", this.player.x - 90, this.player.y - 120);
         this.spawnPickupAt("ally", this.player.x + 90, this.player.y - 120);
+        this.spawnPickupAt("chain", this.player.x, this.player.y - 170);
       }
     }
 
@@ -1878,6 +1969,8 @@
           this.infoText,
           this.buffText,
         ]);
+
+        this.createChainHud({ left: panelLeft, top: panelTop, w: pw, h: ph });
       } else {
         // Fallback rectangles if panel art missing
         const hpW = uiPx(200);
@@ -1945,6 +2038,120 @@
           this.magBar,
           this.magText,
         ]);
+        this.createChainHud({ left: W / 2 - uiPx(125), top: H - uiPx(90), w: uiPx(250), h: uiPx(80) });
+      }
+    }
+
+    /**
+     * Chain-lightning reload widget on the top-center of the ability panel (overlaps it).
+     * Layers: dim inner (0.3) → full-opacity inner revealed by a clockwise pie mask → holder ring.
+     */
+    createChainHud(panel) {
+      if (!this.textures.exists("fx_chain_hud")) return;
+      const holderFrame = this.textures.get("fx_chain_hud").get("holder");
+      const holderH = holderFrame ? holderFrame.height : CHAIN_HUD_FRAMES.holder[3];
+      // Larger on the panel crown — still only shrinks native art (never upscales)
+      const scale = Math.min(1, (panel.h * 0.95) / holderH);
+      const hh = holderH * scale;
+      // Horizontally centered; sits on the panel top edge (between previous too-high / too-low placements)
+      const cx = panel.left + panel.w / 2;
+      const cy = panel.top + hh * 0.06;
+
+      // Inner disc fills the holder opening and tucks just under its metal rim
+      const innerScale = scale * 0.78;
+      // Depth above the HUD container (40) so the widget sits ON the panel, not under it
+      const add = (frame, depth) =>
+        this.add
+          .image(cx, cy, "fx_chain_hud", frame)
+          .setOrigin(0.5)
+          .setDepth(depth)
+          .setScrollFactor(0)
+          .setVisible(false);
+      const innerDim = add("inner", 50).setScale(innerScale).setAlpha(0.3);
+      const innerLit = add("inner", 51).setScale(innerScale);
+      const holder = add("holder", 52).setScale(scale);
+      const maskG = this.make.graphics({ x: 0, y: 0, add: false });
+      maskG.setScrollFactor(0);
+      innerLit.setMask(maskG.createGeometryMask());
+
+      this.chainHud = {
+        holder,
+        innerDim,
+        innerLit,
+        maskG,
+        cx,
+        cy,
+        scale,
+        innerScale,
+        r: innerLit.width * innerScale * 0.5 + 1,
+        state: "off",
+        lastPct: -1,
+        blink: null,
+      };
+    }
+
+    _chainHudStopBlink() {
+      const hud = this.chainHud;
+      if (!hud) return;
+      if (hud.blink) {
+        hud.blink.stop();
+        hud.blink = null;
+      }
+      hud.holder.setScale(hud.scale);
+      hud.innerDim.setScale(hud.innerScale);
+      hud.innerLit.setScale(hud.innerScale).setAlpha(1);
+    }
+
+    /** Ready: pulse the whole widget a few times while the lit inner blinks. */
+    _chainHudStartBlink() {
+      const hud = this.chainHud;
+      this._chainHudStopBlink();
+      const pulse = { t: 0 };
+      hud.blink = this.tweens.add({
+        targets: pulse,
+        t: 1,
+        duration: 150,
+        yoyo: true,
+        repeat: CHAIN_HUD_BLINKS - 1,
+        ease: "Sine.easeInOut",
+        onUpdate: () => {
+          const s = 1 + (CHAIN_HUD_PULSE - 1) * pulse.t;
+          hud.holder.setScale(hud.scale * s);
+          hud.innerDim.setScale(hud.innerScale * s);
+          hud.innerLit.setScale(hud.innerScale * s).setAlpha(1 - 0.65 * pulse.t);
+        },
+        onComplete: () => {
+          hud.blink = null;
+          this._chainHudStopBlink();
+        },
+      });
+    }
+
+    _chainHudMask(pct) {
+      const hud = this.chainHud;
+      const g = hud.maskG;
+      g.clear();
+      if (pct <= 0.001) return;
+      g.fillStyle(0xffffff, 1);
+      if (pct >= 0.999) {
+        // Oversized so the pulsing inner is never clipped
+        g.fillCircle(hud.cx, hud.cy, hud.r * CHAIN_HUD_PULSE + 2);
+        return;
+      }
+      // Clockwise from 12 o'clock as a triangle fan (reliable in geometry masks)
+      const steps = Math.max(3, Math.ceil(pct * 64));
+      const start = -Math.PI / 2;
+      for (let i = 0; i < steps; i++) {
+        const a0 = start + (Math.PI * 2 * pct * i) / steps;
+        const a1 = start + (Math.PI * 2 * pct * (i + 1)) / steps;
+        g.fillTriangle(
+          hud.cx,
+          hud.cy,
+          hud.cx + Math.cos(a0) * hud.r,
+          hud.cy + Math.sin(a0) * hud.r,
+          hud.cx + Math.cos(a1) * hud.r,
+          hud.cy + Math.sin(a1) * hud.r
+        );
       }
     }
 
@@ -2068,6 +2275,8 @@
       const tripleLeft = Math.max(0, this.tripleUntil - now);
       if (shieldLeft > 0) buffs.push(`SHIELD ${Math.ceil(shieldLeft / 1000)}s`);
       if (tripleLeft > 0) buffs.push(`TRIPLE ${Math.ceil(tripleLeft / 1000)}s`);
+      const chainLeft = Math.max(0, this.chainUntil - now);
+      if (chainLeft > 0) buffs.push(`CHAIN ${Math.ceil(chainLeft / 1000)}s`);
       if (this.allies.length > 0) {
         buffs.push(`HELPERS ${this.allies.length}/${MAX_ALLIES}`);
       }
@@ -2150,6 +2359,7 @@
       this.shiftWasDown = shiftDown;
 
       this.updateMagneticBlast(dt);
+      this.updateChainLightning();
       this.updatePowerVisuals();
       this.updateTouchBlastButtons();
 
@@ -2252,10 +2462,385 @@
       return laser;
     }
 
+    /** Drop chain lightning (buff + any active bolt). Used when another primary gun takes over. */
+    clearChainGun() {
+      this.chainUntil = 0;
+      this.chainShotUntil = 0;
+      this.chainReadyAt = 0;
+      this.hideChainLightning();
+    }
+
+    /** Drop triple shot. Used when chain lightning takes over. */
+    clearTripleGun() {
+      this.tripleUntil = 0;
+    }
+
+    activateChainLightning() {
+      const now = this.time.now;
+      this.clearTripleGun();
+      this.chainUntil = now + CHAIN_DURATION_MS;
+      this.chainReadyAt = Math.min(this.chainReadyAt || 0, now);
+      this.spawnBurst(this.player.x, this.player.y, 0x66ddff, 16);
+      this.cameras.main.flash(60, 120, 220, 255);
+    }
+
+    activateTripleShot() {
+      this.clearChainGun();
+      this.tripleUntil = this.time.now + TRIPLE_DURATION_MS;
+      this.spawnBurst(this.player.x, this.player.y, 0xffaa33, 14);
+      this.cameras.main.flash(60, 255, 180, 80);
+    }
+
+    tryFireChain(now) {
+      if (now < this.chainShotUntil || now < this.chainReadyAt) return;
+      // Lock only ships already clearly on screen — new arrivals mid-shot are ignored
+      const locked = this.chainTargets();
+      if (!locked.length) return;
+      this.chainShotTargets = locked;
+      const durMs = SFX.chainLightning(this.chainShotCount);
+      this.chainShotCount += 1;
+      this.chainShotUntil = now + durMs;
+      this.chainReadyAt = this.chainShotUntil + CHAIN_RELOAD_MS;
+      this.chainNextRedraw = 0;
+      this.chainNextTick = now;
+    }
+
+    /** True if the enemy's body is fully inside the playfield (not just peeking in from off-screen). */
+    chainEnemyVisible(e) {
+      if (!e || !e.active) return false;
+      const hw = Math.max(8, (e.displayWidth || 0) * 0.45);
+      const hh = Math.max(8, (e.displayHeight || 0) * 0.45);
+      return e.x - hw >= 0 && e.x + hw <= W && e.y - hh >= 0 && e.y + hh <= H;
+    }
+
+    /**
+     * Visible on-screen enemy ships, ordered nearest-neighbour from the player.
+     * Cursor / aim is never involved.
+     */
+    chainTargets() {
+      const pool = this.enemies.getChildren().filter((e) => this.chainEnemyVisible(e));
+      const order = [];
+      let cx = this.player.x;
+      let cy = this.player.y;
+      while (pool.length) {
+        let best = 0;
+        let bestD = Infinity;
+        for (let i = 0; i < pool.length; i++) {
+          const d = (pool[i].x - cx) ** 2 + (pool[i].y - cy) ** 2;
+          if (d < bestD) {
+            bestD = d;
+            best = i;
+          }
+        }
+        const next = pool.splice(best, 1)[0];
+        order.push(next);
+        cx = next.x;
+        cy = next.y;
+      }
+      return order;
+    }
+
+    /** Locked shot targets that are still alive (positions may update; list membership does not). */
+    chainShotLiveTargets() {
+      return (this.chainShotTargets || []).filter((e) => e && e.active);
+    }
+
+    _chainPiece(frame) {
+      let img = this.chainPieces[this._chainUsed];
+      if (!img) {
+        img = this.add.image(0, 0, "fx_chain", frame).setDepth(7);
+        img.setBlendMode(Phaser.BlendModes.ADD);
+        this.chainPieces.push(img);
+      } else {
+        img.setFrame(frame);
+      }
+      this._chainUsed += 1;
+      img.setVisible(true).setFlip(false, false).clearTint().setAlpha(Phaser.Math.FloatBetween(0.8, 1));
+      return img;
+    }
+
+    /** One straight piece from (x1,y1) to (x2,y2), picked by direction from the matching sheet parts. */
+    _chainStraight(x1, y1, x2, y2, thick, alpha = 1) {
+      const len = Math.hypot(x2 - x1, y2 - y1);
+      if (len < 2) return;
+      const ang = Math.atan2(y2 - y1, x2 - x1);
+      const fold = Math.abs(((ang % Math.PI) + Math.PI) % Math.PI);
+      const cls = fold < Math.PI / 8 || fold > (Math.PI * 7) / 8 ? "h" : Math.abs(fold - Math.PI / 2) < Math.PI / 8 ? "v" : "d";
+      const frame = Phaser.Utils.Array.GetRandom(CHAIN_PIECES[cls]);
+      const [, , fw, fh, coreY] = CHAIN_FRAMES[frame];
+      const img = this._chainPiece(frame);
+      // Strip ends fade out, so each piece runs past both joints and overlaps its neighbours.
+      const overlap = thick * 0.7;
+      img.setOrigin(0.5, coreY).setPosition((x1 + x2) / 2, (y1 + y2) / 2);
+      img.setRotation(ang);
+      img.setScale((len + overlap * 2) / fw, thick / fh);
+      img.setAlpha(img.alpha * alpha);
+      return img;
+    }
+
+    /** Jagged joint list between two points. */
+    _chainPath(ax, ay, bx, by, jitMax = 18, stepMin = 30, stepMax = 70) {
+      const d = Math.hypot(bx - ax, by - ay);
+      if (d < 4) return [];
+      const nx = -(by - ay) / d;
+      const ny = (bx - ax) / d;
+      const pts = [[ax, ay]];
+      let t = 0;
+      let side = Math.random() < 0.5 ? -1 : 1;
+      while (true) {
+        t += Phaser.Math.Between(stepMin, stepMax) / d;
+        if (t >= 0.92) break;
+        if (Math.random() < 0.7) side = -side;
+        const jit = side * Phaser.Math.FloatBetween(0.3, 1) * Math.min(jitMax, d * 0.12);
+        pts.push([ax + (bx - ax) * t + nx * jit, ay + (by - ay) * t + ny * jit]);
+      }
+      pts.push([bx, by]);
+      return pts;
+    }
+
+    /** Connected pieces along a joint list. */
+    _chainDrawPath(pts, thick, alpha = 1) {
+      for (let i = 1; i < pts.length; i++) {
+        const w = thick * Phaser.Math.FloatBetween(0.92, 1.08);
+        this._chainStraight(pts[i - 1][0], pts[i - 1][1], pts[i][0], pts[i][1], w, alpha);
+      }
+    }
+
+    /**
+     * Secondary strand hugging the main bolt: each joint nudged a few px off the main line,
+     * some pieces skipped and some cut short so not every end reconnects.
+     */
+    _chainShadowStrand(pts, thick) {
+      const off = pts.map(([x, y], i) =>
+        i === 0 || i === pts.length - 1
+          ? [x, y]
+          : [x + Phaser.Math.FloatBetween(-6, 6), y + Phaser.Math.FloatBetween(-6, 6)]
+      );
+      const alpha = Phaser.Math.FloatBetween(0.45, 0.7);
+      for (let i = 1; i < off.length; i++) {
+        if (Math.random() < 0.2) continue;
+        let [x1, y1] = off[i - 1];
+        let [x2, y2] = off[i];
+        if (Math.random() < 0.3) {
+          const a = Phaser.Math.FloatBetween(0, 0.25);
+          const b = Phaser.Math.FloatBetween(0.6, 0.85);
+          [x1, y1, x2, y2] = [x1 + (x2 - x1) * a, y1 + (y2 - y1) * a, x1 + (x2 - x1) * b, y1 + (y2 - y1) * b];
+        }
+        const img = this._chainStraight(x1, y1, x2, y2, thick * Phaser.Math.FloatBetween(0.5, 0.75), alpha);
+        if (img) img.setTint(0x99ddff);
+      }
+    }
+
+    /**
+     * Loose crackle around the line: short disconnected pieces pointing every which way,
+     * plus small copies of the start burst's tendrils at some joints.
+     */
+    _chainSparks(pts, thick) {
+      for (let i = 1; i < pts.length; i++) {
+        const [x1, y1] = pts[i - 1];
+        const [x2, y2] = pts[i];
+        const len = Math.hypot(x2 - x1, y2 - y1);
+        if (len < 4) continue;
+        const ang = Math.atan2(y2 - y1, x2 - x1);
+        const nx = -(y2 - y1) / len;
+        const ny = (x2 - x1) / len;
+        const count = Math.max(1, Math.round((len / 26) * Phaser.Math.FloatBetween(0.6, 1.3)));
+        for (let k = 0; k < count; k++) {
+          const t = Math.random();
+          const side = (Math.random() < 0.5 ? -1 : 1) * Phaser.Math.FloatBetween(3, 12);
+          const sx = x1 + (x2 - x1) * t + nx * side;
+          const sy = y1 + (y2 - y1) * t + ny * side;
+          // Point away from the line on the side the spark sits, then curl
+          const away = side > 0 ? Math.PI / 2 : -Math.PI / 2;
+          const sa = ang + away * Phaser.Math.FloatBetween(0.3, 1.2) + Phaser.Math.FloatBetween(-0.6, 0.6);
+          const shrink = Phaser.Math.FloatBetween(0.1, 0.5);
+          const sl = Phaser.Math.Between(10, 24) * shrink;
+          const curl = this._chainPath(sx, sy, sx + Math.cos(sa) * sl, sy + Math.sin(sa) * sl, 5 * shrink, 2, 5);
+          const w = thick * Phaser.Math.FloatBetween(0.4, 0.65) * Math.max(0.35, shrink);
+          const a = Phaser.Math.FloatBetween(0.55, 0.95);
+          for (let c = 1; c < curl.length; c++) {
+            const img = this._chainStraight(curl[c - 1][0], curl[c - 1][1], curl[c][0], curl[c][1], w * (1 - c * 0.12), a);
+            if (img && Math.random() < 0.5) img.setTint(0xaaddff);
+          }
+        }
+      }
+      const [, , sw, sh] = CHAIN_FRAMES.start;
+      const [ox, oy] = CHAIN_START_ORB;
+      for (let i = 1; i < pts.length; i++) {
+        if (Math.random() > 0.45) continue;
+        const t = Phaser.Math.FloatBetween(0.15, 0.95);
+        const tx = pts[i - 1][0] + (pts[i][0] - pts[i - 1][0]) * t + Phaser.Math.FloatBetween(-4, 4);
+        const ty = pts[i - 1][1] + (pts[i][1] - pts[i - 1][1]) * t + Phaser.Math.FloatBetween(-4, 4);
+        const tendril = this._chainPiece("start");
+        tendril.setOrigin(ox / sw, oy / sh).setPosition(tx, ty);
+        tendril.setScale(Phaser.Math.FloatBetween(0.35, 0.6) * Phaser.Math.FloatBetween(0.1, 0.5));
+        tendril.setRotation(Phaser.Math.FloatBetween(-Math.PI, Math.PI));
+        tendril.setFlipY(Math.random() < 0.5);
+        tendril.setAlpha(Phaser.Math.FloatBetween(0.5, 0.85));
+      }
+    }
+
+    /** One link of the chain: one main bolt, lightly distorted by a strand or two hugging it. */
+    _chainLink(ax, ay, bx, by, thick) {
+      const pts = this._chainPath(ax, ay, bx, by);
+      if (!pts.length) return;
+      this._chainSparks(pts, thick);
+      const strands = Phaser.Math.Between(1, 2);
+      for (let s = 0; s < strands; s++) this._chainShadowStrand(pts, thick);
+      this._chainDrawPath(pts, thick);
+      for (let i = 1; i < pts.length - 1; i++) {
+        if (Math.random() > 0.18) continue;
+        const [jx, jy] = pts[i];
+        const dir = Math.atan2(pts[i + 1][1] - jy, pts[i + 1][0] - jx);
+        const fa = dir + (Math.random() < 0.5 ? -1 : 1) * Phaser.Math.FloatBetween(0.35, 0.8);
+        const fl = Phaser.Math.Between(10, 24);
+        this._chainDrawPath(
+          this._chainPath(jx, jy, jx + Math.cos(fa) * fl, jy + Math.sin(fa) * fl, 4, 8, 14),
+          thick * 0.55,
+          0.8
+        );
+      }
+    }
+
+    /** Cap piece ending on a struck ship (perpendicular bar sits on the target). */
+    _chainCap(fromX, fromY, x, y) {
+      const ang = Math.atan2(y - fromY, x - fromX);
+      const useT = Math.random() < 0.5;
+      const img = this._chainPiece(useT ? "jt" : "jb");
+      // jt has its bar on the left end, jb on the right end
+      img.setOrigin(useT ? 0.06 : 0.94, 0.5).setPosition(x, y);
+      img.setRotation(useT ? ang + Math.PI : ang);
+      img.setScale(Phaser.Math.FloatBetween(0.6, 0.85));
+    }
+
+    buildChainLightning() {
+      this._chainUsed = 0;
+      const px = this.player.x;
+      const py = this.player.y - 8;
+      // Only the ships locked at fire time — do not pull in new arrivals mid-shot
+      const targets = this.chainShotLiveTargets();
+      this._chainTargets = targets;
+      if (!targets.length) {
+        this.hideChainLightning();
+        return;
+      }
+      // Never mouse-aimed — first bolt points at the first locked ship
+      const aimAng = Math.atan2(targets[0].y - py, targets[0].x - px);
+      // Start burst: orb on the ship, its cut end aimed at the first target
+      const [, , sw, sh] = CHAIN_FRAMES.start;
+      const [ox, oy] = CHAIN_START_ORB;
+      const [ex, ey] = CHAIN_START_END;
+      const startAxis = Math.atan2(ey - oy, ex - ox);
+      const sScale = Phaser.Math.FloatBetween(0.9, 1);
+      // Two fainter, mirrored and slightly turned copies under the main burst
+      for (let i = 0; i < 2; i++) {
+        const echo = this._chainPiece("start");
+        echo.setOrigin(ox / sw, oy / sh).setPosition(px, py);
+        echo.setScale(sScale * Phaser.Math.FloatBetween(0.75, 0.95));
+        echo.setFlipY(i === 0);
+        const spin = i === 0 ? startAxis * 2 : 0;
+        echo.setRotation(aimAng - startAxis + spin + Phaser.Math.FloatBetween(-0.25, 0.25));
+        echo.setAlpha(Phaser.Math.FloatBetween(0.35, 0.6));
+      }
+      const burst = this._chainPiece("start");
+      burst.setOrigin(ox / sw, oy / sh).setPosition(px, py).setScale(sScale).setAlpha(1);
+      burst.setFlipY(false);
+      burst.setRotation(aimAng - startAxis);
+      // Chain begins a few px inside the burst's cut end so the hard edge is covered
+      const reach = Math.hypot(ex - ox, ey - oy) * sScale - 4;
+      let fx = px + Math.cos(aimAng) * reach;
+      let fy = py + Math.sin(aimAng) * reach;
+      let thick = 14 * sScale;
+      targets.forEach((e) => {
+        this._chainLink(fx, fy, e.x, e.y, thick);
+        this._chainCap(fx, fy, e.x, e.y);
+        fx = e.x;
+        fy = e.y;
+        thick = Math.max(9, thick * 0.88);
+      });
+      for (let i = this._chainUsed; i < this.chainPieces.length; i++) {
+        this.chainPieces[i].setVisible(false);
+      }
+    }
+
+    hideChainLightning() {
+      this.chainPieces.forEach((img) => img.setVisible(false));
+      this._chainTargets = [];
+      this.chainShotTargets = [];
+    }
+
+    updateChainLightning() {
+      const now = this.time.now;
+      if (now < this.chainShotUntil) {
+        if (now >= this.chainNextRedraw) {
+          this.buildChainLightning();
+          this.chainNextRedraw = now + 80;
+        }
+        if (now >= this.chainNextTick) {
+          this.chainNextTick = now + CHAIN_TICK_MS;
+          let killed = 0;
+          (this._chainTargets || []).forEach((e) => {
+            if (!e.active) return;
+            this.damageEnemy(e, CHAIN_TICK_DMG, false, true);
+            if (!e.active) killed += 1;
+            else this.spawnBurst(e.x, e.y, 0x88ddff, 3);
+          });
+          if (killed) SFX.explodeSoft();
+        }
+      } else if (this._chainTargets && this.chainPieces.some((p) => p.visible)) {
+        this.hideChainLightning();
+      }
+      this.updateChainHud(now);
+    }
+
+    /**
+     * off → hidden; firing → dim inner only; cooling → lit inner revealed clockwise;
+     * ready → fully lit, blinks + pulses once on arrival, then stays lit until the next shot.
+     */
+    updateChainHud(now) {
+      const hud = this.chainHud;
+      if (!hud) return;
+      let state;
+      let pct;
+      if (now >= this.chainUntil && now >= this.chainShotUntil) {
+        state = "off";
+        pct = 0;
+      } else if (now < this.chainShotUntil) {
+        state = "firing";
+        pct = 0;
+      } else if (now < this.chainReadyAt) {
+        state = "cooling";
+        pct = 1 - (this.chainReadyAt - now) / CHAIN_RELOAD_MS;
+      } else {
+        state = "ready";
+        pct = 1;
+      }
+
+      if (state !== hud.state) {
+        const visible = state !== "off";
+        hud.holder.setVisible(visible);
+        hud.innerDim.setVisible(visible);
+        hud.innerLit.setVisible(visible);
+        if (state === "ready") this._chainHudStartBlink();
+        else this._chainHudStopBlink();
+        hud.state = state;
+        hud.lastPct = -1;
+      }
+      if (state === "off") return;
+      if (Math.abs(pct - hud.lastPct) > 0.002) {
+        this._chainHudMask(pct);
+        hud.lastPct = pct;
+      }
+    }
+
     tryFirePrimary() {
       if (this.ended || this.pausedGame || this.superFiring) return;
       const ship = this.ship || SHIPS.interceptor;
       const now = this.time.now;
+      if (now < this.chainUntil) {
+        this.tryFireChain(now);
+        return;
+      }
       const tripleOn = now < this.tripleUntil;
       const rate = tripleOn ? ship.tripleRate : ship.fireRate;
       if (now - this.lastFire < rate) return;
@@ -2491,6 +3076,7 @@
       if (kind === "ally") return "pickup_ally";
       if (kind === "super") return "pickup_super";
       if (kind === "magnetic") return "pickup_magnetic";
+      if (kind === "chain") return "pickup_chain";
       return "fuel";
     }
 
@@ -2568,6 +3154,7 @@
         else if (roll < 0.5) kind = "ally";
         else if (roll < 0.62) kind = "super";
         else if (roll < 0.74) kind = "magnetic";
+        else if (roll < 0.84 && this.mode !== "flight") kind = "chain";
         this.spawnPickupDrift(kind);
       }
     }
@@ -2587,9 +3174,7 @@
         this.spawnBurst(player.x, player.y, 0x66ccff, 14);
         this.cameras.main.flash(60, 100, 200, 255);
       } else if (kind === "triple") {
-        this.tripleUntil = this.time.now + TRIPLE_DURATION_MS;
-        this.spawnBurst(player.x, player.y, 0xffaa33, 14);
-        this.cameras.main.flash(60, 255, 180, 80);
+        this.activateTripleShot();
       } else if (kind === "ally") {
         this.recruitAlly(px, py);
       } else if (kind === "super") {
@@ -2600,6 +3185,8 @@
         this.magneticReadyAt = Math.min(this.magneticReadyAt, this.time.now);
         this.spawnBurst(player.x, player.y, 0xaa66ff, 16);
         this.cameras.main.flash(70, 180, 80, 255);
+      } else if (kind === "chain") {
+        this.activateChainLightning();
       } else {
         const before = this.hp;
         this.hp = Math.min(PLAYER_MAX_HP, this.hp + heal);
@@ -2718,6 +3305,8 @@
           } else if (kind === "magnetic") {
             this.magneticReadyAt = Math.min(this.magneticReadyAt, this.time.now);
             this.spawnBurst(ally.sprite.x, ally.sprite.y, 0xaa66ff, 10);
+          } else if (kind === "chain") {
+            this.activateChainLightning();
           } else {
             ally.hp = Math.min(ally.maxHp || ALLY_MAX_HP, ally.hp + heal);
             this.spawnBurst(ally.sprite.x, ally.sprite.y, 0x66ff99, 8);
@@ -3267,6 +3856,11 @@
         this.invulnUntil += pausedFor;
         this.shieldUntil += pausedFor;
         this.tripleUntil += pausedFor;
+        this.chainUntil += pausedFor;
+        this.chainShotUntil += pausedFor;
+        this.chainReadyAt += pausedFor;
+        this.chainNextRedraw += pausedFor;
+        this.chainNextTick += pausedFor;
         this.allies.forEach((a) => {
           if (!a) return;
           a.shieldUntil += pausedFor;

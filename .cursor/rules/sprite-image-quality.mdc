@@ -1,0 +1,34 @@
+---
+description: Keep game/UI image assets sharp — never ruin quality when cropping or displaying
+alwaysApply: true
+---
+
+# Sprite & UI image quality (Alanas Arcade)
+
+When adding, cropping, or wiring images under `apps/web/src/games/`:
+
+## Never ruin source pixels
+
+- **Crop only** — cut rectangles from the source PNG. Do not resize, rotate-and-rebake, or re-encode unless the game *must* have a derived atlas.
+- Prefer **Phaser texture frames** (`texture.add(name, 0, x, y, w, h)`) on the original sheet over exporting separate cropped files.
+- If you must write a cropped PNG: paste RGBA **without** an alpha mask composite, use PNG, and assert cropped pixels match the source region 1:1 before claiming done.
+- **Never upscale** past native resolution in game code (`Math.min(1, target / native)`). Shrink HD → on-screen size only.
+
+## Filtering
+
+- **HD UI / painted art** (HUD, indicators, controller art, soft VFX sheets): `Phaser.Textures.FilterMode.LINEAR` and `imageRendering = "auto"`.
+- **Intentional pixel tiles** (e.g. `space_tile`): `NEAREST` only when seams/crisp 1:1 matter.
+- Do not apply `NEAREST` to HD UI — it makes painted art look crunchy/blocky when FIT-scaled.
+
+## Derived sheets (e.g. lightning pieces)
+
+- Top of a pieces atlas must be a **byte-identical** paste of the source sheet.
+- If strips are pre-rotated for gameplay, rebuild from the current source sheet; do not leave an old soft bake after the user reimports art.
+- After any sheet reimport: re-verify `pieces top == source sheet` and that pickups cut from the sheet still match.
+
+## Checklist before saying “done”
+
+1. Source file is in `apps/web/src/games/...` (not only `public/`).
+2. Display uses LINEAR for HD art; scale ≤ 1.
+3. No accidental resample in the crop pipeline.
+4. Visual check in-game (not only a downscaled preview).
