@@ -75,20 +75,42 @@
   const MENU_BTN_TEX = "ui_menu_button";
   /** Native crop aspect from button.png (do not stretch / nine-slice). */
   const MENU_BTN_ASPECT = 1205 / 345;
+
+  /** TEMP: force tablet sticks/buttons in desktop browser for UI preview. */
+  const FORCE_TOUCH_UI = false;
+
+  /** Phone / tablet (or forced touch UI) — menus use 2 columns so buttons fit. */
+  function isCompactMenu() {
+    if (FORCE_TOUCH_UI) return true;
+    if (typeof window === "undefined") return false;
+    const ua = navigator.userAgent || "";
+    const iPad =
+      /iPad/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    if (iPad || /Android|iPhone|iPod|Mobile|Tablet/i.test(ua)) return true;
+    if (window.matchMedia && window.matchMedia("(hover: none) and (pointer: coarse)").matches) {
+      return true;
+    }
+    // Landscape tablets (~1024×768) and small windows still can't fit a 5-button stack
+    return H < 900 || W < 980;
+  }
+
   function menuBtnHeight() {
-    return uiPx(62);
+    return uiPx(isCompactMenu() ? 52 : 62);
   }
   function menuBtnGap() {
-    return uiPx(14);
+    return uiPx(isCompactMenu() ? 10 : 14);
+  }
+  function menuBtnColGap() {
+    return uiPx(12);
   }
   function menuBtnWidthForHeight(h) {
     return Math.round(h * MENU_BTN_ASPECT);
   }
 
   /**
-   * Vertical stack of textured menu buttons with fixed gaps.
-   * Pass [{ text, onClick }, ...] — identical spacing on every screen.
-   * Scales button.png uniformly (keeps metal frame / cyan glow / honeycomb intact).
+   * Textured menu buttons. Desktop: one column. Mobile/tablet: two columns
+   * (odd last button centered on its own row).
+   * Hit areas use the texture frame (scaled correctly) so taps work on touch.
    */
   class MenuButtonList {
     /**
@@ -100,6 +122,8 @@
      *   centerY?: number,
      *   height?: number,
      *   gap?: number,
+     *   colGap?: number,
+     *   columns?: number,
      *   depth?: number,
      *   scrollFactor?: number,
      *   fontSize?: number,
@@ -112,14 +136,27 @@
       this.btnH = opts.height != null ? opts.height : menuBtnHeight();
       this.btnW = menuBtnWidthForHeight(this.btnH);
       this.gap = opts.gap != null ? opts.gap : menuBtnGap();
+      this.colGap = opts.colGap != null ? opts.colGap : menuBtnColGap();
+      const n = this.items.length;
+      const autoCols = isCompactMenu() && n >= 2 ? 2 : 1;
+      this.columns = opts.columns != null ? opts.columns : autoCols;
+      if (this.columns > 1) {
+        // Keep two columns inside the playfield
+        const maxW = Math.floor((W - uiPx(24) - this.colGap) / 2);
+        if (this.btnW > maxW) {
+          this.btnW = maxW;
+          this.btnH = Math.round(this.btnW / MENU_BTN_ASPECT);
+        }
+      }
       this.depth = opts.depth != null ? opts.depth : 10;
       this.scrollFactor = opts.scrollFactor;
-      this.fontSize = opts.fontSize != null ? opts.fontSize : uiPx(18);
+      this.fontSize =
+        opts.fontSize != null ? opts.fontSize : uiPx(isCompactMenu() ? 14 : 18);
       this.buttons = [];
       this.objs = [];
 
-      const n = this.items.length;
-      this.totalHeight = n > 0 ? n * this.btnH + (n - 1) * this.gap : 0;
+      const rows = n > 0 ? Math.ceil(n / this.columns) : 0;
+      this.totalHeight = rows > 0 ? rows * this.btnH + (rows - 1) * this.gap : 0;
       if (opts.centerY != null) {
         this.top = opts.centerY - this.totalHeight / 2;
       } else {
@@ -127,10 +164,33 @@
       }
 
       this.items.forEach((item, i) => {
-        const y = this.top + this.btnH / 2 + i * (this.btnH + this.gap);
-        const btn = this._makeButton(item.text, y, item.onClick);
+        const pos = this._slot(i, n);
+        const btn = this._makeButton(item.text, pos.x, pos.y, item.onClick);
         this.buttons.push(btn);
       });
+    }
+
+    /** Row/column slot; last incomplete row is centered. */
+    _slot(i, n) {
+      const cols = this.columns;
+      const fullRows = Math.floor(n / cols);
+      const rem = n % cols;
+      let row;
+      let col;
+      let colsInRow;
+      if (i < fullRows * cols) {
+        row = Math.floor(i / cols);
+        col = i % cols;
+        colsInRow = cols;
+      } else {
+        row = fullRows;
+        col = i - fullRows * cols;
+        colsInRow = rem || cols;
+      }
+      const rowW = colsInRow * this.btnW + (colsInRow - 1) * this.colGap;
+      const x = this.x - rowW / 2 + col * (this.btnW + this.colGap) + this.btnW / 2;
+      const y = this.top + this.btnH / 2 + row * (this.btnH + this.gap);
+      return { x, y };
     }
 
     _applyMeta(go) {
@@ -142,34 +202,26 @@
       return go;
     }
 
-    _makeButton(text, y, onClick) {
+    _makeButton(text, x, y, onClick) {
       let bg;
       if (this.scene.textures.exists(MENU_BTN_TEX)) {
-        bg = this.scene.add.image(this.x, y, MENU_BTN_TEX).setOrigin(0.5);
+        bg = this.scene.add.image(x, y, MENU_BTN_TEX).setOrigin(0.5);
         // Uniform scale only — never squash or nine-slice this art
-        const srcH = Math.max(1, bg.height || bg.frame.height);
+        const srcH = Math.max(1, bg.frame ? bg.frame.height : bg.height);
         bg.setScale(this.btnH / srcH);
       } else {
         bg = this.scene.add
-          .rectangle(this.x, y, this.btnW, this.btnH, 0x122038, 0.95)
+          .rectangle(x, y, this.btnW, this.btnH, 0x122038, 0.95)
           .setStrokeStyle(2, 0x3a6a9a);
       }
       this._applyMeta(bg);
-      // Hit box matches visible button bounds (not full texture padding)
-      bg.setInteractive(
-        new Phaser.Geom.Rectangle(
-          -this.btnW / 2,
-          -this.btnH / 2,
-          this.btnW,
-          this.btnH
-        ),
-        Phaser.Geom.Rectangle.Contains
-      );
-      bg.input.cursor = "pointer";
+      // Default texture hit area (full frame). Do NOT pass a broken callback —
+      // that throws hitAreaCallback is not a function and freezes all menu taps.
+      bg.setInteractive({ useHandCursor: true });
 
       const label = this._applyMeta(
         this.scene.add
-          .text(this.x, y, text, {
+          .text(x, y, text, {
             fontFamily: "Courier New, monospace",
             fontSize: `${this.fontSize}px`,
             color: "#e8eef8",
@@ -179,7 +231,7 @@
           })
           .setOrigin(0.5, 0.52)
       );
-      label.setInteractive({ useHandCursor: true });
+      // Label is visual only — never call setInteractive(false) (breaks Phaser hit tests)
 
       const hoverIn = () => {
         if (bg.setTint) bg.setTint(0xd0ecff);
@@ -189,19 +241,27 @@
         if (bg.clearTint) bg.clearTint();
         label.setColor("#e8eef8");
       };
+      let lastClickAt = 0;
       const click = () => {
-        SFX.ui();
-        SFX.ensure();
+        // Debounce — touch often delivers both pointerdown + click-like events
+        const now = Date.now();
+        if (now - lastClickAt < 280) return;
+        lastClickAt = now;
+        try {
+          SFX.ensure();
+          SFX.tryStartMusic();
+          SFX.ui();
+        } catch (e) {
+          /* audio must never freeze menu taps */
+        }
         if (typeof onClick === "function") onClick();
       };
       bg.on("pointerover", hoverIn);
       bg.on("pointerout", hoverOut);
+      // pointerdown is more reliable than pointerup on iOS (finger can leave hitbox)
       bg.on("pointerdown", click);
-      label.on("pointerover", hoverIn);
-      label.on("pointerout", hoverOut);
-      label.on("pointerdown", click);
 
-      return { bg, label, y, text };
+      return { bg, label, x, y, text };
     }
 
     /** Add all button objects into a Phaser container (pause / game over). */
@@ -317,8 +377,6 @@
   const TEST_START_HELPER_COUNT = 3;
   /** Dev: spawn floating shield + helper pickups at run start for audio/collect tests. */
   const TEST_START_PICKUPS = false;
-  /** TEMP: force tablet sticks/buttons in desktop browser for UI preview. */
-  const FORCE_TOUCH_UI = false;
 
   const SCORE = {
     smallAsteroid: 10,
@@ -460,18 +518,24 @@
       if (!this.settings.sound) return;
       const ctx = this.ensure();
       if (!ctx) return;
-      const t0 = ctx.currentTime;
-      const o = ctx.createOscillator();
-      const g = ctx.createGain();
-      o.type = type || "square";
-      o.frequency.setValueAtTime(freq, t0);
-      g.gain.setValueAtTime(0.0001, t0);
-      g.gain.exponentialRampToValueAtTime((gain ?? 0.08) * this.settings.volume, t0 + 0.01);
-      g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-      o.connect(g);
-      g.connect(ctx.destination);
-      o.start(t0);
-      o.stop(t0 + dur + 0.02);
+      // Web Audio forbids exponentialRamp to 0 — keep a tiny floor (also when volume is 0)
+      const peak = Math.max(0.0001, (gain ?? 0.08) * (this.settings.volume || 0));
+      try {
+        const t0 = ctx.currentTime;
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.type = type || "square";
+        o.frequency.setValueAtTime(freq, t0);
+        g.gain.setValueAtTime(0.0001, t0);
+        g.gain.exponentialRampToValueAtTime(peak, t0 + 0.01);
+        g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+        o.connect(g);
+        g.connect(ctx.destination);
+        o.start(t0);
+        o.stop(t0 + dur + 0.02);
+      } catch (e) {
+        /* ignore — never block UI/input on tone failure */
+      }
     },
 
     /** Interceptor / light ship primary */
@@ -663,17 +727,31 @@
         return;
       }
       if (this.musicGapTimer) return;
+      // iOS/Android: AudioContext stays suspended until resume() settles in a gesture
+      try {
+        const ctx = this.game.sound && this.game.sound.context;
+        if (ctx && ctx.state === "suspended") {
+          const p = ctx.resume();
+          if (p && typeof p.then === "function") {
+            p.then(() => this._playMusicTrack()).catch(() => this._playMusicTrack());
+            return;
+          }
+        }
+        if (this.game.sound) this.game.sound.unlock();
+      } catch (e) {
+        /* ignore */
+      }
       this._playMusicTrack();
     },
 
     _playMusicTrack() {
       if (!this.settings.music || !this.game || !this.has("music")) return;
-      // Resume AudioContext if a user gesture already happened
+      if (this.musicTrack && this.musicTrack.isPlaying) return;
       try {
-        if (this.game.sound.context && this.game.sound.context.state === "suspended") {
+        if (this.game.sound && this.game.sound.context && this.game.sound.context.state === "suspended") {
           this.game.sound.context.resume();
         }
-        this.game.sound.unlock();
+        if (this.game.sound) this.game.sound.unlock();
       } catch (e) {
         /* ignore */
       }
@@ -983,15 +1061,26 @@
       syncViewportSize(this.game);
       SFX.bind(this.game);
       SFX.applySettings(Storage.getSettings());
-      // Unlock WebAudio + start quiet music after first gesture
-      const unlock = () => {
-        SFX.ensure();
-        SFX.tryStartMusic();
-      };
-      this.input.once("pointerdown", unlock);
-      this.input.keyboard?.once("keydown", unlock);
+      // Mobile browsers block audio until a real user gesture — listen on document too
+      // (Phaser canvas gestures alone are easy to miss before the first menu tap).
+      installAudioUnlock();
       this.scene.start("Menu");
     }
+  }
+
+  function installAudioUnlock() {
+    if (typeof document === "undefined" || window.__PSS_AUDIO_UNLOCK) return;
+    window.__PSS_AUDIO_UNLOCK = true;
+    const unlock = () => {
+      SFX.ensure();
+      SFX.tryStartMusic();
+      document.removeEventListener("touchstart", unlock);
+      document.removeEventListener("pointerdown", unlock);
+      document.removeEventListener("keydown", unlock);
+    };
+    document.addEventListener("touchstart", unlock, { passive: true });
+    document.addEventListener("pointerdown", unlock);
+    document.addEventListener("keydown", unlock);
   }
 
   /* -------------------- Far space background + near starfield -------------------- */
@@ -1063,18 +1152,19 @@
       document.body.classList.add("menu-cursor");
       syncViewportSize(this.game);
       SFX.bind(this.game);
-      // First click/key elsewhere will unlock; nudge AudioContext when possible
+      installAudioUnlock();
       this.input.once("pointerdown", () => {
         SFX.ensure();
         SFX.tryStartMusic();
       });
       this.stars = createStarfield(this);
 
-      // Header + ship preview, then buttons — leave clear gaps so nothing overlaps
+      const compact = isCompactMenu();
+      // Header + ship preview, then buttons — tighter on phone/tablet so the grid fits
       this.add
-        .text(W / 2, uiPx(44), "PIXEL SPACE SHOOTER", {
+        .text(W / 2, uiPx(compact ? 28 : 44), "PIXEL SPACE SHOOTER", {
           fontFamily: "Courier New, monospace",
-          fontSize: `${uiPx(30)}px`,
+          fontSize: `${uiPx(compact ? 22 : 30)}px`,
           color: "#7ec8ff",
           stroke: "#1a3a6a",
           strokeThickness: Math.max(3, uiPx(4)),
@@ -1082,17 +1172,17 @@
         .setOrigin(0.5);
 
       this.add
-        .text(W / 2, uiPx(74), "STAR WARS–INSPIRED PIXEL ARCADE", {
+        .text(W / 2, uiPx(compact ? 52 : 74), "STAR WARS–INSPIRED PIXEL ARCADE", {
           fontFamily: "Courier New, monospace",
-          fontSize: `${uiPx(12)}px`,
+          fontSize: `${uiPx(compact ? 10 : 12)}px`,
           color: "#6a88aa",
         })
         .setOrigin(0.5);
 
       // Selected ship block: small preview, then name + bests underneath (no overlap)
       const selected = getSelectedShip();
-      const previewH = uiPx(58);
-      const shipY = uiPx(140);
+      const previewH = uiPx(compact ? 44 : 58);
+      const shipY = uiPx(compact ? 100 : 140);
       const ship = this.add.image(W / 2, shipY, selected.texture);
       ship.setScale(Math.min(1.15, previewH / Math.max(1, ship.height)));
       this.tweens.add({
@@ -1104,11 +1194,11 @@
         ease: "Sine.easeInOut",
       });
 
-      const nameY = shipY + previewH * 0.55 + uiPx(14);
+      const nameY = shipY + previewH * 0.55 + uiPx(compact ? 10 : 14);
       this.add
         .text(W / 2, nameY, selected.name, {
           fontFamily: "Courier New, monospace",
-          fontSize: `${uiPx(14)}px`,
+          fontSize: `${uiPx(compact ? 12 : 14)}px`,
           color: "#7ec8ff",
         })
         .setOrigin(0.5);
@@ -1118,23 +1208,26 @@
       this.add
         .text(
           W / 2,
-          nameY + uiPx(22),
+          nameY + uiPx(compact ? 18 : 22),
           `BEST FLIGHT ${flightBest}   ·   BEST FIGHT ${fightBest}`,
           {
             fontFamily: "Courier New, monospace",
-            fontSize: `${uiPx(12)}px`,
+            fontSize: `${uiPx(compact ? 10 : 12)}px`,
             color: "#8899aa",
           }
         )
         .setOrigin(0.5);
 
       const go = (sceneKey) => {
+        SFX.ensure();
+        SFX.tryStartMusic();
         if (sceneKey === "Flight" || sceneKey === "Fight") {
           document.body.classList.remove("menu-cursor");
         }
         this.scene.start(sceneKey);
       };
-      const buttonsTop = nameY + uiPx(52);
+      // Push the 2-col grid down into the spare space under bests
+      const buttonsTop = nameY + uiPx(compact ? 72 : 70);
       this.menuButtons = new MenuButtonList(
         this,
         [
@@ -1144,7 +1237,7 @@
           { text: "SETTINGS", onClick: () => go("Settings") },
           { text: "SELECT SHIP", onClick: () => go("ShipSelect") },
         ],
-        { top: buttonsTop, fontSize: uiPx(17) }
+        { top: buttonsTop }
       );
 
       this.input.keyboard.on("keydown-ONE", () => {
@@ -3803,14 +3896,17 @@
 
       const gw = this.scale.width;
       const gh = this.scale.height;
+      const compact = isCompactMenu();
       this.pauseLayer = this.add.container(0, 0).setDepth(100).setScrollFactor(0);
       const dim = this.add
         .rectangle(gw / 2, gh / 2, gw + 4, gh + 4, 0x000000, 0.65)
         .setScrollFactor(0);
+      // Compact: 2 cols (RESUME | RESTART, MAIN MENU centered) — keep title above the grid
+      const titleY = compact ? Math.max(uiPx(56), gh * 0.22) : Math.max(uiPx(100), gh * 0.26);
       const title = this.add
-        .text(gw / 2, Math.max(uiPx(100), gh * 0.26), "PAUSED", {
+        .text(gw / 2, titleY, "PAUSED", {
           fontFamily: "Courier New, monospace",
-          fontSize: `${uiPx(40)}px`,
+          fontSize: `${uiPx(compact ? 32 : 40)}px`,
           color: "#7ec8ff",
         })
         .setOrigin(0.5)
@@ -3835,7 +3931,9 @@
         ],
         {
           x: gw / 2,
-          centerY: Math.min(gh - uiPx(160), gh * 0.55),
+          centerY: compact
+            ? Math.min(gh - uiPx(90), Math.max(titleY + uiPx(110), gh * 0.55))
+            : Math.min(gh - uiPx(160), gh * 0.55),
           depth: 101,
           scrollFactor: 0,
         }
@@ -3898,28 +3996,31 @@
 
       const gw = this.scale.width;
       const gh = this.scale.height;
+      const compact = isCompactMenu();
       this.gameOverLayer = this.add.container(0, 0).setDepth(110).setScrollFactor(0);
       const dim = this.add
         .rectangle(gw / 2, gh / 2, gw + 4, gh + 4, 0x000000, 0.78)
         .setScrollFactor(0);
+      const titleY = compact ? Math.max(uiPx(40), gh * 0.14) : Math.max(uiPx(80), gh * 0.2);
       const title = this.add
-        .text(gw / 2, Math.max(uiPx(80), gh * 0.2), "GAME OVER", {
+        .text(gw / 2, titleY, "GAME OVER", {
           fontFamily: "Courier New, monospace",
-          fontSize: `${uiPx(44)}px`,
+          fontSize: `${uiPx(compact ? 34 : 44)}px`,
           color: "#ff6688",
         })
         .setOrigin(0.5)
         .setScrollFactor(0);
+      const statsY = compact ? titleY + uiPx(70) : Math.max(uiPx(150), gh * 0.34);
       const stats = this.add
         .text(
           gw / 2,
-          Math.max(uiPx(150), gh * 0.34),
+          statsY,
           `SCORE ${finalScore}\nTIME ${sec}s\nBEST ${Math.floor(best)}${
             this.mode === "fight" ? `\nKILLS ${this.kills}` : `\nDIST ${formatDistance(this.distance)}`
           }`,
           {
             fontFamily: "Courier New, monospace",
-            fontSize: `${uiPx(20)}px`,
+            fontSize: `${uiPx(compact ? 16 : 20)}px`,
             color: "#c8d4e8",
             align: "center",
           }
@@ -3928,6 +4029,7 @@
         .setScrollFactor(0);
 
       this.gameOverLayer.add([dim, title, stats]);
+      // Compact: RESTART | MAIN MENU side by side
       this.gameOverButtons = new MenuButtonList(
         this,
         [
@@ -3939,7 +4041,9 @@
         ],
         {
           x: gw / 2,
-          centerY: Math.min(gh - uiPx(120), gh * 0.68),
+          centerY: compact
+            ? Math.min(gh - uiPx(70), Math.max(statsY + uiPx(100), gh * 0.72))
+            : Math.min(gh - uiPx(120), gh * 0.68),
           depth: 111,
           scrollFactor: 0,
         }
