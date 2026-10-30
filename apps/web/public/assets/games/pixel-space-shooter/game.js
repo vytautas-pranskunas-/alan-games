@@ -407,7 +407,8 @@
     fight: "pss_fight_best",
     sound: "pss_sound",
     music: "pss_music",
-    volume: "pss_volume",
+    volume: "pss_volume_v2",
+    legacyVolume: "pss_volume",
     ship: "pss_ship",
     getBest(mode) {
       return Number(localStorage.getItem(mode === "flight" ? this.flight : this.fight) || 0);
@@ -427,12 +428,20 @@
       if (SHIPS[id]) localStorage.setItem(this.ship, id);
     },
     getSettings() {
-      const vol = Number(localStorage.getItem(this.volume));
+      // Number(null) === 0, so a missing key must be checked before parsing.
+      // Legacy key may hold a bogus 0 saved before that check existed — only trust positive values.
+      const raw = localStorage.getItem(this.volume);
+      const legacy = Number(localStorage.getItem(this.legacyVolume));
+      let volume = 0.45;
+      if (raw != null && raw !== "" && Number.isFinite(Number(raw))) {
+        volume = Phaser.Math.Clamp(Number(raw), 0, 1);
+      } else if (Number.isFinite(legacy) && legacy > 0) {
+        volume = Phaser.Math.Clamp(legacy, 0, 1);
+      }
       return {
         sound: localStorage.getItem(this.sound) !== "0",
         music: localStorage.getItem(this.music) !== "0",
-        // Quieter default so music isn't loud from the start
-        volume: Number.isFinite(vol) ? Phaser.Math.Clamp(vol, 0, 1) : 0.45,
+        volume,
       };
     },
     saveSettings(s) {
