@@ -367,6 +367,9 @@
     return SHIPS[id] || SHIPS.interceptor;
   }
   const MAX_ALLIES = 4;
+  /** Rare pickups run on their own timers (seconds of play) so a run can't go without them. */
+  const RARE_PICKUP_FIRST = { ally: [25, 40], chain: [40, 60] };
+  const RARE_PICKUP_EVERY = { ally: [45, 65], chain: [60, 85] };
   const ALLY_FIRE_MS = 480;
   /** Stronger helper ships that join you (100 HP, can grab shield / triple / fuel). */
   const ALLY_MAX_HP = 100;
@@ -1613,6 +1616,11 @@
       this.spawnAcc = 0;
       this.pickupSpawnAcc = 0;
       this._nextPickupIn = Phaser.Math.FloatBetween(4, 8);
+      this.pickupClock = 0;
+      this.rarePickupDue = {
+        ally: Phaser.Math.FloatBetween(...RARE_PICKUP_FIRST.ally),
+        chain: Phaser.Math.FloatBetween(...RARE_PICKUP_FIRST.chain),
+      };
       this.shieldUntil = 0;
       this.tripleUntil = 0;
       this.chainUntil = 0;
@@ -3195,15 +3203,31 @@
 
     /** Pickups drift in from ahead like planets — fuel / shield / triple / helper. */
     spawnPickupDrift(kind) {
-      if (!this.pickups) return;
-      if (this.pickups.countActive(true) >= 5) return;
+      if (!this.pickups) return false;
+      if (this.pickups.countActive(true) >= 5) return false;
       const key = this.pickupTextureKey(kind);
       const x = Phaser.Math.Between(50, W - 50);
       const item = this.pickups.create(x, -30, key);
-      if (!item) return;
+      if (!item) return false;
       this.stylePickup(item, kind);
       const speed = spd(Phaser.Math.Between(55, 85));
       item.setVelocity(spd(Phaser.Math.Between(-20, 20)), speed);
+      return true;
+    }
+
+    /** Due helper / chain pickup, or null. Skipped while it would be useless. */
+    dueRarePickup() {
+      const due = this.rarePickupDue;
+      if (!due) return null;
+      const allyOk = this.allies.length < MAX_ALLIES;
+      const chainOk = this.mode !== "flight" && this.time.now >= this.chainUntil;
+      if (chainOk && this.pickupClock >= due.chain) return "chain";
+      if (allyOk && this.pickupClock >= due.ally) return "ally";
+      return null;
+    }
+
+    scheduleRarePickup(kind) {
+      this.rarePickupDue[kind] = this.pickupClock + Phaser.Math.FloatBetween(...RARE_PICKUP_EVERY[kind]);
     }
 
     stylePickup(item, kind) {
@@ -3244,6 +3268,13 @@
     /** Sometimes spawn drifting pickups (fuel, shield, triple, ally) like planets. */
     tickPickupSpawns(dt) {
       if (this.magneticActive) return;
+      this.pickupClock += dt;
+      // Scheduled rare drop is retried every frame until there's room for it
+      const rare = this.dueRarePickup();
+      if (rare && this.spawnPickupDrift(rare)) {
+        this.scheduleRarePickup(rare);
+        return;
+      }
       this.pickupSpawnAcc += dt;
       if (this.pickupSpawnAcc >= this._nextPickupIn) {
         this.pickupSpawnAcc = 0;
@@ -3251,12 +3282,10 @@
         if (Math.random() >= 0.8) return;
         const roll = Math.random();
         let kind = "fuel";
-        if (roll < 0.16) kind = "shield";
-        else if (roll < 0.32) kind = "triple";
-        else if (roll < 0.5) kind = "ally";
-        else if (roll < 0.62) kind = "super";
-        else if (roll < 0.74) kind = "magnetic";
-        else if (roll < 0.84 && this.mode !== "flight") kind = "chain";
+        if (roll < 0.18) kind = "shield";
+        else if (roll < 0.36) kind = "triple";
+        else if (roll < 0.5) kind = "super";
+        else if (roll < 0.64) kind = "magnetic";
         this.spawnPickupDrift(kind);
       }
     }
@@ -4038,7 +4067,7 @@
         .setScrollFactor(0);
 
       this.gameOverLayer.add([dim, title, stats]);
-      // Compact: RESTART | MAIN MENU side by side
+      // Always stacked — only two buttons and there's room under the stats
       this.gameOverButtons = new MenuButtonList(
         this,
         [
@@ -4050,6 +4079,7 @@
         ],
         {
           x: gw / 2,
+          columns: 1,
           centerY: compact
             ? Math.min(gh - uiPx(70), Math.max(statsY + uiPx(100), gh * 0.72))
             : Math.min(gh - uiPx(120), gh * 0.68),
