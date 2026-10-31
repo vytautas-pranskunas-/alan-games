@@ -337,7 +337,7 @@
     interceptor: {
       id: "interceptor",
       name: "INTERCEPTOR",
-      blurb: "Fast · agile lasers",
+      blurb: "Fast · full-range lasers",
       texture: "player",
       speed: 260,
       fireRate: 140,
@@ -345,6 +345,8 @@
       shotDmg: 12,
       shotSpeed: 560,
       dualGuns: false,
+      // null = fly until off-screen (any monitor size)
+      shotRangeFrac: null,
       // Facing ease rate (1/s) — higher turns faster
       turnRate: 10,
       // Source-px body — wide enough that wing tips scoop pickups (~display 58×64)
@@ -355,14 +357,18 @@
     dreadnought: {
       id: "dreadnought",
       name: "DREADNOUGHT",
-      blurb: "Slow · heavy dual cannons",
+      blurb: "Heavy · short range · cracks small planets",
       texture: "player_dread",
       speed: 145,
       fireRate: 200,
       tripleRate: 120,
-      shotDmg: 26,
+      // Higher damage + planet-cracking traded for limited range (~65% of diagonal)
+      shotDmg: 34,
       shotSpeed: 500,
       dualGuns: true,
+      shotRangeFrac: 0.65,
+      /** Only this ship’s primary can chip small planets (Interceptor still bounces). */
+      canBreakSmallPlanets: true,
       // Heavy hull turns slower than the interceptor
       turnRate: 5,
       // Long capital dread (source px) — cover hull + side turrets
@@ -1481,7 +1487,7 @@
       const lines = [
         "W / A / S / D  —  Move (ship turns toward its flight direction)",
         "Mouse          —  Aim weapons",
-        "Left Click     —  Fire primary laser (hold)",
+        "Left Click     —  Fire primary (Interceptor: full range · Dread: short+heavy)",
         "Space          —  Superlaser (30s cooldown)",
         "Shift          —  Magnetic Blast (2s / 1min cooldown)",
         "Esc            —  Pause / Resume",
@@ -1491,6 +1497,7 @@
         "Pickups: fuel (+HP), shield (10s), triple gun (10s), chain lightning (30s).",
         "Chain lightning: Flight arcs to asteroids; Fight arcs to enemy ships only.",
         "Helper ships join you (100 HP) — shoot enemies & asteroids (not planets).",
+        "Dread dual cannons crack small planets (~5 hits → asteroid burst); triple/chain bounce; big need Magnetic.",
         "FIGHT: Doomstar is a late boss enemy — dual cannons, tougher than Heavy.",
       ];
       lines.forEach((line, i) => {
@@ -2638,12 +2645,9 @@
     }
 
     _launchLaser(laser, x, y, angle, dmg, tint, texKey) {
-      // New shot id so an old delayedCall cannot kill a reused laser mid-flight
-      laser._shotId = (laser._shotId || 0) + 1;
-      const shotId = laser._shotId;
-
       laser.setActive(true).setVisible(true);
       laser.setDepth(3);
+      laser.setAlpha(1);
       laser.clearTint();
       if (tint != null) laser.setTint(tint);
       laser.setPosition(x, y);
@@ -2652,6 +2656,14 @@
       laser.setRotation(tipRight ? angle : angle + Math.PI / 2);
       laser._dmg = dmg || 12;
       laser._fromAlly = false;
+      // Only set true on Dreadnought dual-cannon shots — never triple / allies / interceptor
+      laser._breaksSmallPlanets = false;
+      laser._originX = x;
+      laser._originY = y;
+      // Range as a fraction of the playfield diagonal — scales with any screen size
+      const frac = this.ship && this.ship.shotRangeFrac;
+      laser._maxRange =
+        frac == null || frac <= 0 ? 0 : Math.hypot(W, H) * frac;
       fitSprite(laser, texKey || "player_laser");
 
       if (laser.body) {
@@ -2664,10 +2676,6 @@
         const shotSpeed = spd((this.ship && this.ship.shotSpeed) || 560);
         this.physics.velocityFromRotation(angle, shotSpeed, laser.body.velocity);
       }
-
-      this.time.delayedCall(2000, () => {
-        if (laser.active && laser._shotId === shotId) this.recycleLaser(laser);
-      });
       return laser;
     }
 
@@ -3130,8 +3138,11 @@
         const side = 26;
         const ox = Math.cos(angle + Math.PI / 2) * side;
         const oy = Math.sin(angle + Math.PI / 2) * side;
-        this.fireLaserShot(mx + ox, my + oy, angle, dmg, null, "dread_shot");
-        this.fireLaserShot(mx - ox, my - oy, angle, dmg, null, "dread_shot");
+        const a = this.fireLaserShot(mx + ox, my + oy, angle, dmg, null, "dread_shot");
+        const b = this.fireLaserShot(mx - ox, my - oy, angle, dmg, null, "dread_shot");
+        // Main cannons only — triple fan / chain must not crack small planets
+        if (a) a._breaksSmallPlanets = true;
+        if (b) b._breaksSmallPlanets = true;
         SFX.plasmaHeavy();
       } else {
         this.fireLaserShot(mx, my, angle, dmg);
@@ -3139,8 +3150,18 @@
       }
     }
 
+    /** Helper shots: pass through planets and keep full range whichever ship you fly. */
+    markAllyLaser(laser) {
+      if (!laser) return null;
+      laser._fromAlly = true;
+      laser._maxRange = 0;
+      return laser;
+    }
+
     recycleLaser(laser) {
       laser.clearTint();
+      laser.setAlpha(1);
+      laser._maxRange = 0;
       laser.setActive(false).setVisible(false);
       laser.body.stop();
       laser.body.enable = false;
@@ -3154,7 +3175,8 @@
       SFX.superCharge();
       const aim = this.aimPoint();
       const angle = Phaser.Math.Angle.Between(this.player.x, this.player.y, aim.x, aim.y);
-      const dist = 900;
+      // Full diagonal so the beam reaches the edge on any screen size
+      const dist = Math.hypot(W, H);
       const cos = Math.cos(angle);
       const sin = Math.sin(angle);
       const fadeList = [];
@@ -3259,7 +3281,7 @@
           onComplete: () => burst.destroy(),
         });
       }
-      this.magneticRadius = 1200;
+      this.magneticRadius = 0;
       this._magneticHit = new Set();
       this.shake = 16;
       this.cameras.main.flash(140, 180, 80, 255);
@@ -3284,40 +3306,52 @@
         if (l.active) this.recycleLaser(l);
       });
 
-      // Instant full-screen wipe — planets, asteroids, ships, everything
-      this.wipeScreenThreats();
+      // Wave expands from the firing point until it passes the farthest screen corner
+      const ox = this.player.x;
+      const oy = this.player.y;
+      this.magneticOrigin = { x: ox, y: oy };
+      this.magneticMaxR =
+        Math.max(
+          Math.hypot(ox, oy),
+          Math.hypot(W - ox, oy),
+          Math.hypot(ox, H - oy),
+          Math.hypot(W - ox, H - oy)
+        ) + 60;
+      this._magneticBoomAt = 0;
     }
 
-    wipeScreenThreats() {
+    /** Destroy everything the wave front has reached (distance ≤ radius, edge-inclusive). */
+    wipeScreenThreats(radius) {
       const hitTargets = this._magneticHit || (this._magneticHit = new Set());
+      const o = this.magneticOrigin || { x: this.player.x, y: this.player.y };
+      const reached = (obj, pad) =>
+        Phaser.Math.Distance.Between(o.x, o.y, obj.x, obj.y) - (pad || 0) <= radius;
       let wiped = 0;
 
       [...this.obstacles.getChildren()].forEach((obj) => {
-        if (!obj.active || hitTargets.has(obj)) return;
+        if (!obj.active || hitTargets.has(obj) || !reached(obj, obj._radius)) return;
         hitTargets.add(obj);
         wiped += 1;
         this.vaporizeObstacle(obj, true);
       });
 
       [...this.enemies.getChildren()].forEach((obj) => {
-        if (!obj.active || hitTargets.has(obj)) return;
+        if (!obj.active || hitTargets.has(obj) || !reached(obj, obj._radius)) return;
         hitTargets.add(obj);
         wiped += 1;
-        // Per-target explode silenced — soft booms play once below
+        // Per-target explode silenced — soft booms are throttled below
         this.damageEnemy(obj, 9999, true, true);
       });
 
       [...this.enemyLasers.getChildren()].forEach((bolt) => {
-        if (bolt.active) bolt.destroy();
+        if (bolt.active && reached(bolt, 6)) bolt.destroy();
       });
 
-      // Staggered mid-volume explosions under magnetic (not one-per-target stack)
-      if (wiped > 0) {
-        this.time.delayedCall(60, () => SFX.explodeSoft());
-        this.time.delayedCall(140, () => SFX.explodeSoft());
-        if (wiped > 3) {
-          this.time.delayedCall(240, () => SFX.explodeSoft());
-        }
+      // Kills now arrive frame by frame as the ring travels — cap booms to ~8/s
+      const now = this.time.now;
+      if (wiped > 0 && now >= (this._magneticBoomAt || 0)) {
+        this._magneticBoomAt = now + 120;
+        SFX.explodeSoft();
       }
     }
 
@@ -3663,15 +3697,37 @@
 
     isPlanetObstacle(obs) {
       if (!obs || !obs.active) return false;
-      if (obs._indestructible) return true;
+      if (obs._indestructible || obs._smallPlanet) return true;
       const key = obs.texture && String(obs.texture.key);
       return !!key && key.startsWith("planet");
+    }
+
+    isSmallPlanetObstacle(obs) {
+      if (!obs || !obs.active) return false;
+      if (obs._smallPlanet) return true;
+      const key = obs.texture && String(obs.texture.key);
+      return key === "planet_s";
     }
 
     isAsteroidObstacle(obs) {
       if (!obs || !obs.active) return false;
       const key = obs.texture && String(obs.texture.key);
       return !!key && key.startsWith("asteroid");
+    }
+
+    /**
+     * Asteroids: any player/ally bolt.
+     * Small planets: only Dreadnought dual-cannon shots (_breaksSmallPlanets).
+     * Triple / chain / Interceptor / helpers bounce off planets.
+     */
+    canDamageObstacle(obs, laser) {
+      if (!obs || !obs.active) return false;
+      if (this.isAsteroidObstacle(obs)) return true;
+      if (this.isSmallPlanetObstacle(obs)) {
+        return !!(laser && laser._breaksSmallPlanets);
+      }
+      // Large / huge planets stay magnetic/super-only
+      return false;
     }
 
     /** Find an X that doesn't stack a new planet on an existing one near the top. */
@@ -3789,10 +3845,7 @@
         const ay = ally.sprite.y;
         if (tripleOn) {
           const spread = 0.2;
-          const mk = (a, dmg, tint) => {
-            const laser = this.fireLaserShot(ax, ay, a, dmg, tint);
-            if (laser) laser._fromAlly = true;
-          };
+          const mk = (a, dmg, tint) => this.markAllyLaser(this.fireLaserShot(ax, ay, a, dmg, tint));
           if (this.mode === "flight") {
             mk(angle - spread, 9999, 0xffcc66);
             mk(angle, 9999, 0x66ffaa);
@@ -3804,8 +3857,7 @@
           }
         } else {
           const dmg = this.mode === "flight" ? 9999 : 12;
-          const laser = this.fireLaserShot(ax, ay, angle, dmg, 0x66ffcc);
-          if (laser) laser._fromAlly = true;
+          this.markAllyLaser(this.fireLaserShot(ax, ay, angle, dmg, 0x66ffcc));
         }
         if (i === 0) {
           if (tripleOn) SFX.plasmaMulti();
@@ -3823,28 +3875,28 @@
       const now = this.time.now;
       const elapsed = MAGNETIC_DURATION_MS - Math.max(0, this.magneticUntil - now);
       const progress = Phaser.Math.Clamp(elapsed / MAGNETIC_DURATION_MS, 0, 1);
-      // Visual expand (destroy radius already covers whole screen)
-      const visualR = 40 + progress * 700;
-
-      const cx = this.player.x;
-      const cy = this.player.y;
+      const o = this.magneticOrigin || { x: this.player.x, y: this.player.y };
+      const maxR = this.magneticMaxR || Math.hypot(W, H);
+      // Lead ring IS the kill front: it reaches the farthest corner exactly at the end
+      const waveR = 20 + progress * (maxR - 20);
+      this.magneticRadius = waveR;
 
       if (this.magneticCore && this.magneticCore.active) {
-        this.magneticCore.setPosition(cx, cy);
+        this.magneticCore.setPosition(this.player.x, this.player.y);
         this.magneticCore.setRadius(14 + Math.sin(now / 50) * 4);
         this.magneticCore.setAlpha(0.35 + (1 - progress) * 0.25);
       }
       if (this.magneticRings) {
         this.magneticRings.forEach((ring, i) => {
           if (!ring.active) return;
-          ring.setPosition(cx, cy);
-          ring.setRadius(Math.max(8, visualR - i * 28));
+          // Rings stay anchored where the pulse was fired, like a real shockwave
+          ring.setPosition(o.x, o.y);
+          ring.setRadius(Math.max(8, waveR - i * 28));
           ring.setAlpha(0.85 - progress * 0.5);
         });
       }
 
-      // Keep wiping everything in space for the full 2 seconds
-      this.wipeScreenThreats();
+      this.wipeScreenThreats(waveR);
 
       if (now >= this.magneticUntil) {
         this.magneticActive = false;
@@ -3938,21 +3990,21 @@
     onLaserHitObstacle(laser, obs) {
       if (!laser.active || !obs.active) return;
       this.recycleLaser(laser);
-      // Ally lasers ignore planets (helpers only shoot asteroids / enemies)
-      if (laser._fromAlly && this.isPlanetObstacle(obs)) {
+      if (!this.canDamageObstacle(obs, laser)) {
+        // Bounce — triple / chain / Interceptor / allies / big planets
         this.spawnBurst(laser.x, laser.y, 0x88aaff, 4);
         return;
       }
-      if (obs._indestructible) {
-        this.spawnBurst(laser.x, laser.y, 0x88aaff, 4);
-        return;
+      if (this.isSmallPlanetObstacle(obs)) {
+        this.damageSmallPlanet(obs, laser._dmg || 12, false);
+      } else {
+        this.damageObstacle(obs, laser._dmg || 12, false);
       }
-      this.damageObstacle(obs, laser._dmg || 12, false);
     }
 
     damageObstacle(obs, dmg, fromSuper, silent) {
-      if (obs._indestructible && !fromSuper) {
-        // Normal lasers bounce off planets — only Magnetic Blast wipes them
+      if (!fromSuper && (obs._indestructible || obs._smallPlanet)) {
+        // Planets: laser path uses canDamageObstacle; other callers (ram) must not chip planets
         this.spawnBurst(obs.x, obs.y, 0x88aaff, 4);
         return;
       }
@@ -3965,6 +4017,47 @@
         if (!silent) SFX.explode();
         this.spawnExplosion(x, y, fromSuper ? "lg" : "sm");
         obs.destroy();
+      }
+    }
+
+    /** Planet damage from Dread dual cannons only (after canDamageObstacle already allowed it). */
+    damageSmallPlanet(obs, dmg, silent) {
+      if (!obs || !obs.active || !obs._smallPlanet) return;
+      obs._hp = (obs._hp || 1) - dmg;
+      this.spawnBurst(obs.x, obs.y, 0x88ccff, 6);
+      if (obs._hp <= 0) {
+        const x = obs.x;
+        const y = obs.y;
+        this.addScore(obs._score || SCORE.planetSmall);
+        if (!silent) SFX.explode();
+        this.spawnExplosion(x, y, "lg");
+        obs.destroy();
+        this.spawnPlanetDebris(x, y);
+      }
+    }
+
+    /** Shatter a cracked small planet into a handful of outward-flung asteroids. */
+    spawnPlanetDebris(x, y) {
+      if (!this.obstacles) return;
+      const count = Phaser.Math.Between(3, 5);
+      for (let i = 0; i < count; i++) {
+        const angle = (Math.PI * 2 * i) / count + Phaser.Math.FloatBetween(-0.35, 0.35);
+        const speed = Phaser.Math.Between(70, 150);
+        const o = this.obstacles.create(x, y, "asteroid_s");
+        if (!o) continue;
+        fitSprite(o, "asteroid_s");
+        o.setDepth(2);
+        o.setVelocity(
+          spd(Math.cos(angle) * speed),
+          spd(Math.sin(angle) * speed + 35)
+        );
+        o._hp = 20;
+        o._score = SCORE.smallAsteroid;
+        o._touchDmg = 12;
+        o._indestructible = false;
+        o._smallPlanet = false;
+        syncObstacleCircle(o, 8);
+        o.setAngularVelocity(Phaser.Math.Between(-90, 90));
       }
     }
 
@@ -4003,7 +4096,8 @@
       const hitR = Math.max(obs._radius || 16, visualR) + 12;
       if (dist > hitR) return;
       this.damagePlayer(obs._touchDmg || 15);
-      if (!obs._indestructible && obs._hp != null) {
+      // Ramming only chips asteroids — planets need cannons / Magnetic / Super
+      if (!obs._indestructible && !obs._smallPlanet && obs._hp != null) {
         this.damageObstacle(obs, 40, false);
       }
     }
@@ -4250,10 +4344,16 @@
     cleanupOffscreen() {
       const pad = 40;
       this.playerLasers.getChildren().forEach((l) => {
-        if (
-          l.active &&
-          (l.x < -pad || l.x > W + pad || l.y < -pad || l.y > H + pad)
-        ) {
+        if (!l.active) return;
+        // Limited-range ships (Dreadnought): vanish at max travel distance (no fade)
+        if (l._maxRange > 0) {
+          const dist = Phaser.Math.Distance.Between(l._originX, l._originY, l.x, l.y);
+          if (dist >= l._maxRange) {
+            this.recycleLaser(l);
+            return;
+          }
+        }
+        if (l.x < -pad || l.x > W + pad || l.y < -pad || l.y > H + pad) {
           this.recycleLaser(l);
         }
       });
@@ -4338,11 +4438,12 @@
       } else if (roll < 0.9) {
         key = Math.random() < 0.65 ? "planet_s" : "planet_l";
         speed = key === "planet_s" ? 70 : 55;
-        hp = 99999;
+        // Small planet: Dread ~5 shots (34 dmg); large asteroid is ~2 shots → ~2.5× tougher
+        hp = key === "planet_s" ? 170 : 99999;
         score = key === "planet_s" ? SCORE.planetSmall : SCORE.planetLarge;
         touch = key === "planet_s" ? 25 : 30;
         radius = key === "planet_s" ? 12 : 16;
-        indestructible = true;
+        indestructible = key !== "planet_s";
       } else {
         key = "planet_indestruct";
         speed = 50;
@@ -4353,9 +4454,11 @@
         indestructible = true;
       }
 
-      const x = indestructible
-        ? this.findClearPlanetX(radius, -40)
-        : Phaser.Math.Between(Math.max(60, radius + 40), W - Math.max(60, radius + 40));
+      const isSmallPlanet = key === "planet_s";
+      const x =
+        indestructible || isSmallPlanet
+          ? this.findClearPlanetX(radius, -40)
+          : Phaser.Math.Between(Math.max(60, radius + 40), W - Math.max(60, radius + 40));
       const o = this.obstacles.create(x, -40, key);
       fitSprite(o, key);
       o.setVelocity(0, spd(speed));
@@ -4364,8 +4467,9 @@
       o._score = score;
       o._touchDmg = touch;
       o._indestructible = indestructible;
+      o._smallPlanet = isSmallPlanet;
       syncObstacleCircle(o, radius);
-      if (indestructible) {
+      if (indestructible || isSmallPlanet) {
         // Slow axial spin, random direction
         const spin = Phaser.Math.Between(6, 18) * (Math.random() < 0.5 ? -1 : 1);
         o.setAngularVelocity(spin);
@@ -4374,7 +4478,7 @@
       }
 
       // Pattern: occasional side-by-side pair with a gap (asteroids only)
-      if (!indestructible && t > 25 && Math.random() < 0.25) {
+      if (!indestructible && !isSmallPlanet && t > 25 && Math.random() < 0.25) {
         const x2 = Phaser.Math.Clamp(x + (Math.random() < 0.5 ? -160 : 160) * speedScale(), 40, W - 40);
         if (Math.abs(x2 - x) > 120 * speedScale()) {
           const o2 = this.obstacles.create(x2, -80, "asteroid_s");
@@ -4764,12 +4868,19 @@
       let touch;
       let radius;
       let score;
+      let hp = 99999;
+      let indestructible = true;
+      let smallPlanet = false;
       if (roll < 0.55) {
         key = "planet_s";
         speed = 55;
         touch = 22;
         radius = 12;
         score = SCORE.planetSmall;
+        // Same toughness as Flight — ~5 Dreadnought cannon hits
+        hp = 170;
+        indestructible = false;
+        smallPlanet = true;
       } else if (roll < 0.85) {
         key = "planet_l";
         speed = 45;
@@ -4788,10 +4899,11 @@
       fitSprite(o, key);
       o.setVelocity(spd(Phaser.Math.Between(-20, 20)), spd(speed));
       o.setDepth(2);
-      o._hp = 99999;
+      o._hp = hp;
       o._score = score;
       o._touchDmg = touch;
-      o._indestructible = true;
+      o._indestructible = indestructible;
+      o._smallPlanet = smallPlanet;
       syncObstacleCircle(o, radius);
       const spin = Phaser.Math.Between(6, 18) * (Math.random() < 0.5 ? -1 : 1);
       o.setAngularVelocity(spin);
