@@ -7,13 +7,30 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <title>Pixel Space Shooter</title>
   <!-- Engine: Phaser 3 (Arcade Physics) — see repo rule game-engine-selection -->
-  <link rel="stylesheet" href="style.css?v=touch2" />
+  <link rel="stylesheet" href="style.css?v=loader1" />
 </head>
 <body>
   <div id="game-wrap">
     <!-- Native-res seamless space tile (mirror-paired — CSS repeat, no scale) -->
     <div id="space-bg" aria-hidden="true"></div>
     <div id="game"></div>
+    <!-- Visible immediately — Phaser updates progress while sprites/audio load -->
+    <div id="boot-loader" role="status" aria-live="polite" aria-busy="true">
+      <div class="boot-loader__glow" aria-hidden="true"></div>
+      <div class="boot-loader__card">
+        <p class="boot-loader__eyebrow">ALANAS ARCADE</p>
+        <h1 class="boot-loader__title">PIXEL SPACE SHOOTER</h1>
+        <p class="boot-loader__sub">STAR WARS–INSPIRED PIXEL ARCADE</p>
+        <div class="boot-loader__bar" aria-hidden="true">
+          <div class="boot-loader__fill" id="boot-loader-fill"></div>
+          <div class="boot-loader__scan" aria-hidden="true"></div>
+        </div>
+        <div class="boot-loader__meta">
+          <span id="boot-loader-pct">0%</span>
+          <span id="boot-loader-status">Warming thrusters…</span>
+        </div>
+      </div>
+    </div>
     <!-- HD touch controls: HTML/CSS (like web imgs) — not drawn on Phaser canvas -->
     <div id="touch-ui" hidden aria-hidden="true"></div>
     <div id="rotate-hint" aria-live="polite">
@@ -22,6 +39,6 @@
     </div>
   </div>
   <script src="phaser.min.js"></script>
-  <script src="game.js?v=sprites138"></script>
+  <script src="game.js?v=sprites155"></script>
 </body>
 </html>

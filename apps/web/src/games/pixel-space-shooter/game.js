@@ -288,6 +288,12 @@
   const CHAIN_DURATION_MS = 30000;
   const CHAIN_RELOAD_MS = 3000;
   const CHAIN_TICK_MS = 250;
+  /** How long each bolt shape stays on screen before re-jagging (feels like a real hit). */
+  const CHAIN_HOLD_MS = 500;
+  /** Opacity flicker while a bolt is held — reads as electrical crackle. */
+  const CHAIN_BLINK_MS = 85;
+  const CHAIN_ALPHA_DIM = 0.6;
+  const CHAIN_ALPHA_LIT = 1;
   /** Reload widget: peak scale of the ready pulse and how many blinks it does. */
   const CHAIN_HUD_PULSE = 1.12;
   const CHAIN_HUD_BLINKS = 3;
@@ -339,6 +345,8 @@
       shotDmg: 12,
       shotSpeed: 560,
       dualGuns: false,
+      // Facing ease rate (1/s) — higher turns faster
+      turnRate: 10,
       // Source-px body — wide enough that wing tips scoop pickups (~display 58×64)
       bodyW: 52,
       bodyH: 40,
@@ -355,6 +363,8 @@
       shotDmg: 26,
       shotSpeed: 500,
       dualGuns: true,
+      // Heavy hull turns slower than the interceptor
+      turnRate: 5,
       // Long capital dread (source px) — cover hull + side turrets
       bodyW: 118,
       bodyH: 170,
@@ -380,6 +390,8 @@
   const TEST_START_HELPER_COUNT = 3;
   /** Dev: spawn floating shield + helper pickups at run start for audio/collect tests. */
   const TEST_START_PICKUPS = false;
+  /** TEMP: chain lightning always armed (no pickup). Revert after visual testing. */
+  const TEST_CHAIN_ALWAYS = false;
 
   const SCORE = {
     smallAsteroid: 10,
@@ -973,12 +985,76 @@
     }
   }
 
+  /* -------------------- HTML boot loader (instant, before Phaser finishes) -------------------- */
+  const BOOT_STATUS = [
+    "Warming thrusters…",
+    "Charting star lanes…",
+    "Loading plasma banks…",
+    "Calibrating targeting…",
+    "Arming magnetic coils…",
+    "Syncing helper drones…",
+    "Charging chain coils…",
+    "Almost launch-ready…",
+  ];
+
+  function setBootLoaderProgress(pct, status) {
+    const fill = document.getElementById("boot-loader-fill");
+    const pctEl = document.getElementById("boot-loader-pct");
+    const statusEl = document.getElementById("boot-loader-status");
+    const p = Phaser.Math.Clamp(Math.round(pct), 0, 100);
+    if (fill) fill.style.width = `${p}%`;
+    if (pctEl) pctEl.textContent = `${p}%`;
+    if (statusEl && status) statusEl.textContent = status;
+  }
+
+  function hideBootLoader() {
+    const el = document.getElementById("boot-loader");
+    if (!el || el.classList.contains("is-done")) return;
+    setBootLoaderProgress(100, "Launch!");
+    el.classList.add("is-done");
+    el.setAttribute("aria-busy", "false");
+    // Remove after fade so it can't block taps
+    window.setTimeout(() => {
+      if (el.parentNode) el.parentNode.removeChild(el);
+    }, 500);
+  }
+
+  function bootStatusForFile(file) {
+    if (!file) return BOOT_STATUS[0];
+    const key = String(file.key || file.src || "").toLowerCase();
+    if (key.includes("music") || key.includes("sound") || key.includes("plasma") || key.includes("mp3")) {
+      return "Loading soundtrack & SFX…";
+    }
+    if (key.includes("chain")) return "Charging chain coils…";
+    if (key.includes("hud") || key.includes("ui_") || key.includes("menu")) return "Wiring control panels…";
+    if (key.includes("enemy") || key.includes("doom")) return "Scanning hostiles…";
+    if (key.includes("player") || key.includes("ally") || key.includes("dread")) return "Readying your fleet…";
+    if (key.includes("asteroid") || key.includes("planet") || key.includes("space")) {
+      return "Mapping the debris field…";
+    }
+    return "Loading assets…";
+  }
+
   /* -------------------- Boot -------------------- */
   class BootScene extends Phaser.Scene {
     constructor() {
       super("Boot");
     }
     preload() {
+      setBootLoaderProgress(2, "Warming thrusters…");
+      this.load.on("progress", (value) => {
+        const pct = Math.max(2, Math.floor(value * 100));
+        const tip = BOOT_STATUS[Math.min(BOOT_STATUS.length - 1, Math.floor(value * BOOT_STATUS.length))];
+        setBootLoaderProgress(pct, tip);
+      });
+      this.load.on("fileprogress", (file) => {
+        setBootLoaderProgress(
+          Math.max(2, Math.floor((this.load.progress || 0) * 100)),
+          bootStatusForFile(file)
+        );
+      });
+      this.load.on("complete", () => setBootLoaderProgress(100, "Systems online…"));
+
       this.load.image("space_bg", "space.jpeg");
       this.load.image("space_tile", "space_tile.png");
       // Tablet touch UI art
@@ -1005,6 +1081,7 @@
       });
     }
     create() {
+      setBootLoaderProgress(100, "Systems online…");
       // Soft filtering so sprite-map art keeps smooth edges (not hard pixel blocks)
       SPRITE_FILES.forEach((key) => {
         if (this.textures.exists(key)) {
@@ -1076,6 +1153,7 @@
       // Mobile browsers block audio until a real user gesture — listen on document too
       // (Phaser canvas gestures alone are easy to miss before the first menu tap).
       installAudioUnlock();
+      hideBootLoader();
       this.scene.start("Menu");
     }
   }
@@ -1401,7 +1479,7 @@
         .setOrigin(0.5);
 
       const lines = [
-        "W / A / S / D  —  Move (ship does not rotate)",
+        "W / A / S / D  —  Move (ship turns toward its flight direction)",
         "Mouse          —  Aim weapons",
         "Left Click     —  Fire primary laser (hold)",
         "Space          —  Superlaser (30s cooldown)",
@@ -1410,7 +1488,8 @@
         "",
         "TABLET: left stick = move, right stick = aim + fire.",
         "Above left stick: MAG blast + SUPERLASER buttons.",
-        "Pickups: fuel (+HP), shield (10s), triple gun (10s).",
+        "Pickups: fuel (+HP), shield (10s), triple gun (10s), chain lightning (30s).",
+        "Chain lightning: Flight arcs to asteroids; Fight arcs to enemy ships only.",
         "Helper ships join you (100 HP) — shoot enemies & asteroids (not planets).",
         "FIGHT: Doomstar is a late boss enemy — dual cannons, tougher than Heavy.",
       ];
@@ -1767,6 +1846,7 @@
         this.spawnPickupAt("ally", this.player.x + 90, this.player.y - 120);
         this.spawnPickupAt("chain", this.player.x, this.player.y - 170);
       }
+      if (TEST_CHAIN_ALWAYS) this.activateChainLightning();
     }
 
     isTouchPlay() {
@@ -2394,6 +2474,26 @@
       this.buffText.setColor(shieldLeft > 0 ? "#88ddff" : this.allies.length ? "#66ffaa" : "#ffcc66");
     }
 
+    /**
+     * Nose follows the movement direction (art faces up, so heading = atan2(v) + π/2);
+     * eases back upright when idle. The arcade body never rotates — only the sprite does.
+     */
+    updateShipFacing(vx, vy, dt) {
+      if (!this.player) return;
+      const ship = this.ship || getSelectedShip();
+      const moving = vx !== 0 || vy !== 0;
+      const target = moving ? Math.atan2(vy, vx) + Math.PI / 2 : 0;
+      const diff = Phaser.Math.Angle.Wrap(target - this.player.rotation);
+      // Exponential ease: same feel at any frame rate, no overshoot or end snap
+      const k = 1 - Math.exp(-((ship && ship.turnRate) || 8) * dt);
+      const next = Math.abs(diff) < 0.002 ? target : this.player.rotation + diff * k;
+      this.player.setRotation(next);
+      if (this.engineGlow && this.engineGlow.followOffset) {
+        const ly = this.player.texture && this.player.texture.key === "player_dread" ? 22 : 12;
+        this.engineGlow.followOffset.set(-ly * Math.sin(next), ly * Math.cos(next));
+      }
+    }
+
     aimPoint() {
       // Right stick aim — remember last solid direction (avoid near-zero dead zone)
       if (this.touchAim && this.touchAim.active) {
@@ -2442,8 +2542,7 @@
         this.engineGlow.emitting = false;
       }
       this.player.setVelocity(vx, vy);
-      // Keep fixed orientation
-      this.player.setAngle(0);
+      this.updateShipFacing(vx, vy, dt);
 
       const aim = this.aimPoint();
       this.crosshair.setPosition(aim.x, aim.y);
@@ -2574,6 +2673,8 @@
 
     /** Drop chain lightning (buff + any active bolt). Used when another primary gun takes over. */
     clearChainGun() {
+      // TEMP test flag — keep chain as the only primary
+      if (TEST_CHAIN_ALWAYS) return;
       this.chainUntil = 0;
       this.chainShotUntil = 0;
       this.chainReadyAt = 0;
@@ -2588,13 +2689,14 @@
     activateChainLightning() {
       const now = this.time.now;
       this.clearTripleGun();
-      this.chainUntil = now + CHAIN_DURATION_MS;
+      this.chainUntil = now + (TEST_CHAIN_ALWAYS ? 1e9 : CHAIN_DURATION_MS);
       this.chainReadyAt = Math.min(this.chainReadyAt || 0, now);
       this.spawnBurst(this.player.x, this.player.y, 0x66ddff, 16);
       this.cameras.main.flash(60, 120, 220, 255);
     }
 
     activateTripleShot() {
+      if (TEST_CHAIN_ALWAYS) return;
       this.clearChainGun();
       this.tripleUntil = this.time.now + TRIPLE_DURATION_MS;
       this.spawnBurst(this.player.x, this.player.y, 0xffaa33, 14);
@@ -2613,29 +2715,40 @@
       this.chainReadyAt = this.chainShotUntil + CHAIN_RELOAD_MS;
       this.chainNextRedraw = 0;
       this.chainNextTick = now;
+      this.chainNextBlink = now;
+      this.chainBlinkLit = true;
+      // Brief screen kiss so the strike reads as an impact, not a thin flicker
+      this.cameras.main.flash(80, 160, 220, 255);
     }
 
-    /** True if the target's body is fully inside the playfield (not just peeking in from off-screen). */
+    /**
+     * True if the target is clearly on-screen enough to chain to.
+     * Asteroids use a looser center check (they stream in from the top in Flight);
+     * enemy ships still need most of their body inside the playfield.
+     */
     chainTargetVisible(target) {
       if (!target || !target.active) return false;
+      if (this.isAsteroidObstacle(target)) {
+        const pad = 12;
+        return target.x >= pad && target.x <= W - pad && target.y >= pad && target.y <= H - pad;
+      }
       const hw = Math.max(8, (target.displayWidth || 0) * 0.45);
       const hh = Math.max(8, (target.displayHeight || 0) * 0.45);
       return target.x - hw >= 0 && target.x + hw <= W && target.y - hh >= 0 && target.y + hh <= H;
     }
 
     /**
-     * Visible on-screen enemy ships, ordered nearest-neighbour from the player.
-     * Cursor / aim is never involved.
+     * On-screen chain targets, ordered nearest-neighbour from the player.
+     * Flight: asteroids only. Fight: enemy ships only. Never planets / aim cursor.
      */
     chainTargets() {
       const pool = [];
-      if (this.obstacles) {
+      if (this.mode === "flight" && this.obstacles) {
         this.obstacles.getChildren().forEach((obs) => {
           if (!this.isAsteroidObstacle(obs) || !this.chainTargetVisible(obs)) return;
           pool.push(obs);
         });
-      }
-      if (this.mode === "fight" && this.enemies) {
+      } else if (this.mode === "fight" && this.enemies) {
         this.enemies.getChildren().forEach((enemy) => {
           if (!this.chainTargetVisible(enemy)) return;
           pool.push(enemy);
@@ -2889,14 +3002,40 @@
       this.chainPieces.forEach((img) => img.setVisible(false));
       this._chainTargets = [];
       this.chainShotTargets = [];
+      this._chainPieceBaseAlpha = null;
+    }
+
+    /** Blink held bolt pieces between CHAIN_ALPHA_DIM and CHAIN_ALPHA_LIT. */
+    _blinkChainPieces(lit) {
+      const bases = this._chainPieceBaseAlpha;
+      if (!bases || !this.chainPieces) return;
+      const mul = lit ? CHAIN_ALPHA_LIT : CHAIN_ALPHA_DIM;
+      for (let i = 0; i < this.chainPieces.length; i++) {
+        const img = this.chainPieces[i];
+        if (!img || !img.visible) continue;
+        const base = bases[i] != null ? bases[i] : 1;
+        img.setAlpha(Phaser.Math.Clamp(base * mul, 0.15, 1));
+      }
     }
 
     updateChainLightning() {
       const now = this.time.now;
       if (now < this.chainShotUntil) {
+        // Hold one jagged shape ~300ms so the strike is readable, then re-crack
         if (now >= this.chainNextRedraw) {
           this.buildChainLightning();
-          this.chainNextRedraw = now + 80;
+          // Snapshot per-piece alpha so blink multiplies instead of flattening echoes
+          this._chainPieceBaseAlpha = this.chainPieces.map((img) =>
+            img && img.visible ? img.alpha : 0
+          );
+          this.chainNextRedraw = now + CHAIN_HOLD_MS;
+          this.chainBlinkLit = true;
+          this._blinkChainPieces(true);
+        }
+        if (now >= (this.chainNextBlink || 0)) {
+          this.chainNextBlink = now + CHAIN_BLINK_MS;
+          this.chainBlinkLit = !this.chainBlinkLit;
+          this._blinkChainPieces(this.chainBlinkLit);
         }
         if (now >= this.chainNextTick) {
           this.chainNextTick = now + CHAIN_TICK_MS;
@@ -2906,7 +3045,7 @@
             if (this.isAsteroidObstacle(target)) this.damageObstacle(target, CHAIN_TICK_DMG, false, true);
             else this.damageEnemy(target, CHAIN_TICK_DMG, false, true);
             if (!target.active) killed += 1;
-            else this.spawnBurst(target.x, target.y, 0x88ddff, 3);
+            else this.spawnBurst(target.x, target.y, 0x88ddff, 5);
           });
           if (killed) SFX.explodeSoft();
         }
@@ -2972,26 +3111,30 @@
       const aim = this.aimPoint();
       const angle = Phaser.Math.Angle.Between(this.player.x, this.player.y, aim.x, aim.y);
       const px = this.player.x;
-      const py = this.player.y - 8;
+      const py = this.player.y;
+      // Muzzle slightly forward of center along aim (esp. when dread is rotated)
+      const nose = ship.dualGuns ? 14 : 8;
+      const mx = px + Math.cos(angle) * nose;
+      const my = py + Math.sin(angle) * nose;
       const dmg = ship.shotDmg;
 
       if (tripleOn) {
         // Three shots from ship center in a fan (left / center / right)
         const spread = 0.22;
-        this.fireLaserShot(px, py, angle - spread, dmg, 0xffcc66);
-        this.fireLaserShot(px, py, angle, dmg + 2, 0x66ffaa);
-        this.fireLaserShot(px, py, angle + spread, dmg, 0xffcc66);
+        this.fireLaserShot(mx, my, angle - spread, dmg, 0xffcc66);
+        this.fireLaserShot(mx, my, angle, dmg + 2, 0x66ffaa);
+        this.fireLaserShot(mx, my, angle + spread, dmg, 0xffcc66);
         SFX.plasmaMulti();
       } else if (ship.dualGuns) {
-        // Dreadnought: two heavy bolts from side turrets
-        const side = 22;
+        // Dreadnought: two heavy bolts from side turrets (perpendicular to aim)
+        const side = 26;
         const ox = Math.cos(angle + Math.PI / 2) * side;
         const oy = Math.sin(angle + Math.PI / 2) * side;
-        this.fireLaserShot(px + ox, py + oy, angle, dmg, null, "dread_shot");
-        this.fireLaserShot(px - ox, py - oy, angle, dmg, null, "dread_shot");
+        this.fireLaserShot(mx + ox, my + oy, angle, dmg, null, "dread_shot");
+        this.fireLaserShot(mx - ox, my - oy, angle, dmg, null, "dread_shot");
         SFX.plasmaHeavy();
       } else {
-        this.fireLaserShot(px, py, angle, dmg);
+        this.fireLaserShot(mx, my, angle, dmg);
         SFX.plasmaLight();
       }
     }
@@ -3135,6 +3278,12 @@
         .circle(this.player.x, this.player.y, 18, 0xffaaff, 0.45)
         .setDepth(6);
 
+      // Clear existing player shots once for a clean open — do NOT keep wiping them
+      // while magnetic is active (that made SFX play with no visible bullets).
+      this.playerLasers.getChildren().forEach((l) => {
+        if (l.active) this.recycleLaser(l);
+      });
+
       // Instant full-screen wipe — planets, asteroids, ships, everything
       this.wipeScreenThreats();
     }
@@ -3160,11 +3309,6 @@
 
       [...this.enemyLasers.getChildren()].forEach((bolt) => {
         if (bolt.active) bolt.destroy();
-      });
-
-      // Also clear player laser clutter for a clean field
-      this.playerLasers.getChildren().forEach((l) => {
-        if (l.active) this.recycleLaser(l);
       });
 
       // Staggered mid-volume explosions under magnetic (not one-per-target stack)
@@ -3228,11 +3372,12 @@
       return true;
     }
 
-    /** Due helper / chain pickup, or null. Skipped while it would be useless. */
+    /** Due helper / chain pickup (both Flight and Fight), or null. Skipped while useless. */
     dueRarePickup() {
       const due = this.rarePickupDue;
       if (!due) return null;
       const allyOk = this.allies.length < MAX_ALLIES;
+      // Chain pickup in both modes (Flight hits asteroids; Fight hits enemy ships)
       const chainOk = this.time.now >= this.chainUntil;
       if (chainOk && this.pickupClock >= due.chain) return "chain";
       if (allyOk && this.pickupClock >= due.ally) return "ally";

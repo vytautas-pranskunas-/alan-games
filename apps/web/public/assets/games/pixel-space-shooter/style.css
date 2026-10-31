@@ -181,6 +181,136 @@ body {
   opacity: 0.35;
 }
 
+/* Boot loader — sits above the space tile until Phaser finishes preload */
+#boot-loader {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+  background: radial-gradient(ellipse at 50% 35%, rgba(40, 70, 120, 0.45), rgba(12, 10, 28, 0.82) 55%, rgba(8, 6, 18, 0.92));
+  transition: opacity 0.45s ease, visibility 0.45s ease;
+}
+
+#boot-loader.is-done {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.boot-loader__glow {
+  position: absolute;
+  width: min(70vw, 420px);
+  height: min(70vw, 420px);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(126, 200, 255, 0.22), transparent 68%);
+  filter: blur(8px);
+  animation: boot-pulse 2.4s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.boot-loader__card {
+  position: relative;
+  width: min(92vw, 440px);
+  text-align: center;
+  color: #c8e6ff;
+  letter-spacing: 0.06em;
+}
+
+.boot-loader__eyebrow {
+  font-size: clamp(0.65rem, 1.6vw, 0.8rem);
+  color: #6a88aa;
+  margin-bottom: 0.55rem;
+}
+
+.boot-loader__title {
+  font-size: clamp(1.15rem, 3.6vw, 1.75rem);
+  font-weight: 700;
+  color: #7ec8ff;
+  text-shadow: 0 0 18px rgba(80, 160, 255, 0.35), 0 2px 0 #1a3a6a;
+  margin-bottom: 0.4rem;
+  line-height: 1.15;
+}
+
+.boot-loader__sub {
+  font-size: clamp(0.62rem, 1.5vw, 0.75rem);
+  color: #6a88aa;
+  margin-bottom: 1.35rem;
+}
+
+.boot-loader__bar {
+  position: relative;
+  height: 14px;
+  border: 2px solid #3a6a9a;
+  background: rgba(8, 16, 32, 0.85);
+  overflow: hidden;
+  box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.45), 0 0 16px rgba(60, 120, 200, 0.18);
+}
+
+.boot-loader__fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #1a5a9a, #7ec8ff 55%, #c8f0ff);
+  box-shadow: 0 0 12px rgba(126, 200, 255, 0.55);
+  transition: width 0.12s linear;
+}
+
+.boot-loader__scan {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    110deg,
+    transparent 35%,
+    rgba(255, 255, 255, 0.22) 50%,
+    transparent 65%
+  );
+  background-size: 220% 100%;
+  animation: boot-scan 1.4s linear infinite;
+  pointer-events: none;
+  mix-blend-mode: soft-light;
+}
+
+.boot-loader__meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 0.65rem;
+  font-size: clamp(0.68rem, 1.7vw, 0.82rem);
+  color: #9fd4ff;
+}
+
+#boot-loader-status {
+  color: #8899aa;
+  text-align: right;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 70%;
+}
+
+@keyframes boot-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scale(0.92);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+}
+
+@keyframes boot-scan {
+  from {
+    background-position: 120% 0;
+  }
+  to {
+    background-position: -120% 0;
+  }
+}
+
 /* Portrait phones: game is too short — ask to rotate */
 #rotate-hint {
   display: none;
